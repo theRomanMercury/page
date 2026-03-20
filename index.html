@@ -123,7 +123,6 @@
   }
   .btn-toggle-sidebar:hover { color: var(--text2); background: var(--bg2); }
   .topbar-title { font-family: var(--serif); font-size: 15px; color: var(--text2); }
-  .page-counter { margin-left: auto; font-size: 12px; color: var(--text3); }
 
   /* Reading area */
   #reading-area {
@@ -145,6 +144,7 @@
     height: 60px;
   }
   @media (max-width: 768px) { .bottom-nav { padding: 0 1.5rem; } }
+  .page-counter { margin-left: auto; font-size: 12px; color: var(--text3); }
 
   /* Loading */
   #loading-screen { display:flex; flex-direction:column; align-items:center; justify-content:center; height:100%; }
@@ -243,7 +243,6 @@
   <div class="topbar">
     <button class="btn-toggle-sidebar" onclick="toggleSidebar()" title="Toggle sidebar">☰</button>
     <span class="topbar-title">The Pages</span>
-    <span class="page-counter" id="page-counter" style="display:none">p. <span id="page-num">1</span></span>
   </div>
 
   <!-- Reading area -->
@@ -303,6 +302,7 @@
       Next
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
     </button>
+    <span class="page-counter" id="page-counter" style="display:none">p. <span id="page-num">1</span></span>
   </div>
 
 </div>
@@ -428,7 +428,6 @@ async function init(){
     document.getElementById("btn-start").style.display="none";
     document.getElementById("btn-continue").style.display="inline-block";
     updateNavButtons();
-    document.getElementById("page-counter").style.display="inline-block";
     renderTree();
   } else {
     document.getElementById("btn-start").style.display="inline-block";
@@ -452,17 +451,20 @@ function getDefaultChapters(){
 function renderPage(idx){
   if(!pages.length)return;
   const p=pages[idx];
+
+  // Chapter marker above prose (only on chapter start pages)
   const marker=document.getElementById("ch-marker");
   const titleEl=document.getElementById("ch-title");
-  if(p.isChapterStart){
+  if(p.isChapterStart && p.chapterTitle){
     marker.textContent="CHAPTER "+(p.chapterIdx+1);
     marker.classList.add("show");
-    titleEl.textContent=p.chapterTitle||"";
+    titleEl.textContent=p.chapterTitle;
     titleEl.classList.remove("hidden");
   } else {
     marker.classList.remove("show");
     titleEl.classList.add("hidden");
   }
+
   const html=p.text.split("\n").filter(s=>s.trim()).map(s=>`<p>${s.trim()}</p>`).join("");
   document.getElementById("story-prose").innerHTML=html;
   document.getElementById("page-num").textContent=idx+1;
