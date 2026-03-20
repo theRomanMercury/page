@@ -205,7 +205,7 @@
       <div class="ch-marker" id="ch-marker"></div>
       <div class="ch-title hidden" id="ch-title"></div>
       <div class="story-prose" id="story-prose">
-        <p class="story-hint">The Pages is learning who you are. Begin when you're ready.</p>
+        <p class="story-hint">Every page you have ever opened has left a trace. This book follows that trace — and turns it into something only you could read.</p>
       </div>
       <div class="pause-prompt" id="pause-prompt"></div>
     </div>
@@ -398,11 +398,19 @@ async function generateNextPage(){
   const isFirst = pages.length === 0;
   const history=pages.slice(-3).map(p=>p.text);
   const res=await sendToExt({action:"generate",state:{chapterIdx:currentChapterIdx,mood:currentMood,timeOnPage,pauseCount,scrollBackCount,history,isChapterStart:chapterChanging||isFirst}},20000);
-  if(res?.text&&res.text.length>10){
-    pages.push({text:res.text,chapterIdx:currentChapterIdx,isChapterStart:chapterChanging||isFirst,chapterTitle:(chapterChanging||isFirst)?(chapters[currentChapterIdx]?.title||""):"",});
+
+  // Retry once if failed
+  let result = res;
+  if(!result?.text || result.text.length < 10) {
+    await new Promise(r => setTimeout(r, 1500));
+    result = await sendToExt({action:"generate",state:{chapterIdx:currentChapterIdx,mood:currentMood,timeOnPage,pauseCount,scrollBackCount,history,isChapterStart:chapterChanging||isFirst}},20000);
+  }
+
+  if(result?.text&&result.text.length>10){
+    pages.push({text:result.text,chapterIdx:currentChapterIdx,isChapterStart:chapterChanging||isFirst,chapterTitle:(chapterChanging||isFirst)?(chapters[currentChapterIdx]?.title||""):"",});
     currentPage=pages.length-1;renderPage(currentPage);saveState();showActionButtons();
   } else {
-    document.getElementById("story-prose").innerHTML=`<p class="story-hint">Could not generate page. Make sure the Adaptive Book extension is installed and active.</p>`;
+    document.getElementById("story-prose").innerHTML=`<p class="story-hint">Something went wrong. Please check the extension is active and try again.</p>`;
     renderTree();
   }
   isLoading=false;updateNavButtons();
@@ -458,7 +466,7 @@ function resetAll(){
   document.getElementById("ch-marker").classList.remove("show");
   document.getElementById("ch-title").classList.add("hidden");
   // save button stays visible
-  document.getElementById("story-prose").innerHTML=`<p class="story-hint">The Pages is learning who you are. Begin when you're ready.</p>`;
+  document.getElementById("story-prose").innerHTML=`<p class="story-hint">Every page you have ever opened has left a trace. This book follows that trace — and turns it into something only you could read.</p>`;
   renderTree();
   // Fully clear book state in IndexedDB so new chapters and text are generated fresh
   sendToExt({action:"fullReset"});
