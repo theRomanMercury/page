@@ -175,24 +175,42 @@ let hasWebProfile=false;
 // --- Extension & profile check ---
 async function checkExtension() {
   if (sessionStorage.getItem("extBannerDismissed")) return;
+
+  // First check if extension is actually installed and active
+  const installed = await isExtensionInstalled();
+
+  if (installed) {
+    // Extension is running — check if it has sent a fresh profile
+    hasWebProfile = true;
+    showProfileBadge();
+    return;
+  }
+
+  // Extension not installed — check if backend has a recent profile (within 24h)
   try {
     const res  = await fetch(API_BASE + "/profile/status");
     const data = await res.json();
-    if (data.hasProfile) { hasWebProfile=true; showProfileBadge(); return; }
+    if (data.hasProfile && data.fresh) {
+      hasWebProfile = true;
+      showProfileBadge();
+      return;
+    }
   } catch {}
-  const installed = await isExtensionInstalled();
-  if (!installed) showExtBanner();
+
+  // No extension, no fresh profile — show install banner
+  showExtBanner();
 }
 
 function isExtensionInstalled() {
   return new Promise((resolve) => {
     if (typeof chrome === "undefined" || !chrome.runtime) { resolve(false); return; }
+    const timer = setTimeout(() => resolve(false), 600);
     try {
       chrome.runtime.sendMessage(EXT_ID, {action:"getStatus"}, (res) => {
+        clearTimeout(timer);
         resolve(!chrome.runtime.lastError && !!res);
       });
-    } catch { resolve(false); }
-    setTimeout(() => resolve(false), 500);
+    } catch { clearTimeout(timer); resolve(false); }
   });
 }
 
