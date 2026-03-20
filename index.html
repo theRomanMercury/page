@@ -73,10 +73,6 @@
     border-top: 0.5px solid var(--border);
     display: flex; flex-direction: column; gap: 6px;
   }
-  .status-pill { display:flex; align-items:center; gap:5px; font-size:11px; color:var(--text3); }
-  .status-dot { width:6px; height:6px; border-radius:50%; flex-shrink:0; }
-  .dot-on  { background:#1D9E75; }
-  .dot-off { background:var(--text3); }
   .btn-startover {
     font-size:11px; color:var(--text3); background:none; border:none;
     font-family:var(--sans); cursor:pointer; text-align:left; padding:0;
@@ -164,10 +160,6 @@
     </div>
   </div>
   <div class="sidebar-bottom">
-    <div class="status-pill">
-      <span class="status-dot" id="status-dot"></span>
-      <span id="status-text">online</span>
-    </div>
     <button class="btn-startover" onclick="confirmReset()">Start over</button>
   </div>
 </div>
@@ -267,15 +259,6 @@ function sendToExt(msg, timeout=5000) {
   });
 }
 
-// --- Online status ---
-function updateOnlineStatus(){
-  const on=navigator.onLine;
-  document.getElementById("status-dot").className="status-dot "+(on?"dot-on":"dot-off");
-  document.getElementById("status-text").textContent=on?"Online":"Offline";
-}
-window.addEventListener("online",updateOnlineStatus);
-window.addEventListener("offline",updateOnlineStatus);
-updateOnlineStatus();
 
 // --- Sidebar tree ---
 // Collapsed state per chapter
