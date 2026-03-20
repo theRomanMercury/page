@@ -25,7 +25,6 @@
   body { background: var(--bg); color: var(--text); font-family: var(--sans); min-height: 100vh; }
   #app { max-width: 720px; margin: 0 auto; padding: 2rem 1.25rem 4rem; }
 
-  /* Extension banner */
   .ext-banner { display:none; align-items:flex-start; gap:12px; background:var(--bg2); border:0.5px solid var(--border2); border-radius:var(--radius-lg); padding:14px 16px; margin-bottom:1.5rem; }
   .ext-banner.show { display:flex; }
   .ext-icon { width:36px; height:36px; border-radius:8px; background:#534AB7; flex-shrink:0; display:flex; align-items:center; justify-content:center; }
@@ -33,6 +32,9 @@
   .ext-body { flex:1; }
   .ext-title { font-size:13px; font-weight:500; color:var(--text); margin-bottom:3px; }
   .ext-desc { font-size:12px; color:var(--text2); line-height:1.5; margin-bottom:8px; }
+  .ext-steps { margin:0 0 10px 0; padding:0; list-style:none; }
+  .ext-steps li { font-size:12px; color:var(--text2); padding:3px 0; display:flex; gap:8px; align-items:baseline; }
+  .ext-steps li::before { content:attr(data-n); font-size:10px; background:#534AB7; color:#fff; border-radius:50%; width:16px; height:16px; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
   .ext-actions { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
   .ext-btn { padding:6px 14px; font-size:12px; border:0.5px solid var(--border2); border-radius:var(--radius); background:var(--bg); color:var(--text); cursor:pointer; font-family:var(--sans); text-decoration:none; display:inline-block; transition:background .15s; }
   .ext-btn:hover { background:var(--bg3); }
@@ -41,21 +43,17 @@
   .ext-dismiss { font-size:11px; color:var(--text3); cursor:pointer; background:none; border:none; font-family:var(--sans); padding:0; }
   .ext-dismiss:hover { color:var(--text2); }
 
-  /* Web profile badge */
   .ext-profile-badge { display:none; align-items:center; gap:6px; background:var(--bg2); border:0.5px solid var(--border); border-radius:var(--radius); padding:6px 12px; margin-bottom:1.5rem; font-size:12px; color:var(--text2); }
   .ext-profile-badge.show { display:flex; }
   .ext-dot { width:7px; height:7px; border-radius:50%; background:#1D9E75; flex-shrink:0; }
 
-  /* Progress */
   .progress-track { height:3px; background:var(--border); border-radius:2px; margin-bottom:1.75rem; overflow:hidden; }
   .progress-fill { height:100%; background:#534AB7; border-radius:2px; transition:width .5s ease; }
 
-  /* Chapter header */
   .ch-header { margin-bottom:1.25rem; }
   .ch-label { font-size:11px; color:var(--text3); letter-spacing:.07em; margin-bottom:5px; }
   .ch-title { font-size:22px; font-weight:500; font-family:var(--serif); color:var(--text); line-height:1.3; }
 
-  /* Story card */
   .story-wrap { position:relative; margin-bottom:1rem; }
   .story-card { background:var(--bg); border:0.5px solid var(--border); border-radius:var(--radius-lg); padding:1.75rem; min-height:240px; }
   .story-prose { font-family:var(--serif); font-size:17px; line-height:1.95; color:var(--text); }
@@ -63,17 +61,14 @@
   .story-prose p:last-child { margin-bottom:0; }
   .story-hint { color:var(--text3); font-style:italic; font-size:14px; font-family:var(--sans); }
 
-  /* Mood pill (subtle, inside story card) */
-  .mood-pill { position:absolute; top:14px; right:14px; font-size:11px; padding:3px 10px; border-radius:10px; opacity:0.6; }
+  .mood-pill { position:absolute; top:14px; right:14px; font-size:11px; padding:3px 10px; border-radius:10px; opacity:0.5; }
   .mood-deep     { background:#EEEDFE; color:#534AB7; }
   .mood-curious  { background:#E1F5EE; color:#0F6E56; }
   .mood-restless { background:#FAEEDA; color:#854F0B; }
   .mood-absent   { background:var(--bg2); color:var(--text3); }
 
-  /* Pause prompt */
   .pause-prompt { background:var(--bg2); border:0.5px solid var(--border); border-radius:var(--radius); padding:12px 16px; margin-bottom:1rem; font-size:13px; color:var(--text2); font-style:italic; display:none; line-height:1.6; }
 
-  /* Buttons */
   .btn-row { display:flex; gap:8px; flex-wrap:wrap; margin-top:1rem; }
   .btn-p { padding:9px 22px; font-size:14px; border:0.5px solid var(--border2); border-radius:var(--radius); background:var(--bg2); color:var(--text); cursor:pointer; transition:all .15s; font-family:var(--sans); }
   .btn-p:hover { background:var(--bg3); }
@@ -82,7 +77,6 @@
   .btn-s { padding:9px 16px; font-size:13px; border:0.5px solid var(--border); border-radius:var(--radius); background:transparent; color:var(--text2); cursor:pointer; transition:all .15s; font-family:var(--sans); }
   .btn-s:hover { background:var(--bg2); }
 
-  /* Loading dots */
   .dot-pulse { display:inline-flex; gap:4px; align-items:center; }
   .dot-pulse span { width:6px; height:6px; border-radius:50%; background:var(--text3); animation:dp 1.2s infinite; }
   .dot-pulse span:nth-child(2) { animation-delay:.2s; }
@@ -93,7 +87,7 @@
 <body>
 <div id="app">
 
-  <!-- Extension banner -->
+  <!-- Extension install banner -->
   <div class="ext-banner" id="ext-banner">
     <div class="ext-icon">
       <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -102,9 +96,13 @@
     </div>
     <div class="ext-body">
       <div class="ext-title">Personalize your book</div>
-      <div class="ext-desc">Install the Adaptive Book extension to shape the narrative with your browsing history. Without it, the book adapts only to how you read.</div>
+      <div class="ext-desc">Install the Adaptive Book extension to shape the narrative with your browsing history. Your data never leaves your device.</div>
+      <ol class="ext-steps">
+        <li data-n="1">Download the extension from the <a href="https://chrome.google.com/webstore" target="_blank" style="color:#534AB7">Chrome Web Store</a></li>
+        <li data-n="2">Click the extension icon in your toolbar and press "Sync"</li>
+        <li data-n="3">Refresh this page — your book will be personalized</li>
+      </ol>
       <div class="ext-actions">
-        <a class="ext-btn primary" href="https://chrome.google.com/webstore" target="_blank">Install extension</a>
         <button class="ext-dismiss" onclick="dismissBanner()">Continue without it</button>
       </div>
     </div>
@@ -113,19 +111,16 @@
   <!-- Web profile active badge -->
   <div class="ext-profile-badge" id="ext-profile-badge">
     <span class="ext-dot"></span>
-    <span>Web profile active — your browsing shapes this book</span>
+    <span id="profile-badge-text">Web profile active — your browsing shapes this book</span>
   </div>
 
-  <!-- Progress bar -->
   <div class="progress-track"><div class="progress-fill" id="progress-fill" style="width:0%"></div></div>
 
-  <!-- Chapter header -->
   <div class="ch-header">
     <div class="ch-label" id="ch-label">CHAPTER 1</div>
     <div class="ch-title" id="ch-title">The Self You Cannot Step Away From</div>
   </div>
 
-  <!-- Story -->
   <div class="story-wrap">
     <div class="mood-pill mood-absent" id="mood-pill"></div>
     <div class="story-card">
@@ -135,21 +130,18 @@
     </div>
   </div>
 
-  <!-- Pause prompt -->
   <div class="pause-prompt" id="pause-prompt"></div>
 
-  <!-- Buttons -->
   <div class="btn-row">
     <button class="btn-p" id="btn-start" onclick="startReading()">Begin reading →</button>
     <button class="btn-p" id="btn-next"  onclick="nextChapter()" style="display:none">Next chapter →</button>
-    <button class="btn-s" id="btn-reset" onclick="resetAll()">Reset</button>
+    <button class="btn-s" id="btn-reset" onclick="resetAll()">Start over</button>
   </div>
 
 </div>
 
 <script>
-const API_BASE = "https://page-2gnb.onrender.com";
-const EXT_ID   = "kbogmdfdjfndppmjodkmjefnkibpeobh";
+const EXT_ID = "kbogmdfdjfndppmjodkmjefnkibpeobh";
 
 const CHAPTERS = [
   {title:"The Self You Cannot Step Away From", theme:"opening — presence and the inescapable now"},
@@ -165,76 +157,104 @@ const PAUSE_PROMPTS = [
   "You keep returning. That's not restlessness — it's the shape of thinking.",
 ];
 
+// State
 let chapterIdx=0, isLoading=false, isStarted=false;
 let timeOnPage=0, pauseCount=0, scrollBackCount=0;
-let currentMood='absent', prevMood='';
+let currentMood="absent", prevMood="";
 let lastScrollY=0, pageTimer=null, inactivityTimer=null, isUserActive=true;
 let storyHistory=[], readingStartTime=null;
-let hasWebProfile=false;
+let hasExtension=false, hasProfile=false;
+let autoSaveTimer=null;
 
-// --- Extension & profile check ---
-async function checkExtension() {
-  if (sessionStorage.getItem("extBannerDismissed")) return;
-
-  // First check if extension is actually installed and active
-  const installed = await isExtensionInstalled();
-
-  if (installed) {
-    // Extension is running — check if it has sent a fresh profile
-    hasWebProfile = true;
-    showProfileBadge();
-    return;
-  }
-
-  // Extension not installed — check if backend has a recent profile (within 24h)
-  try {
-    const res  = await fetch(API_BASE + "/profile/status");
-    const data = await res.json();
-    if (data.hasProfile && data.fresh) {
-      hasWebProfile = true;
-      showProfileBadge();
-      return;
-    }
-  } catch {}
-
-  // No extension, no fresh profile — show install banner
-  showExtBanner();
-}
-
-function isExtensionInstalled() {
+// --- Extension communication ---
+function sendToExt(msg) {
   return new Promise((resolve) => {
-    if (typeof chrome === "undefined" || !chrome.runtime) { resolve(false); return; }
-    const timer = setTimeout(() => resolve(false), 600);
+    if (typeof chrome === "undefined" || !chrome.runtime) { resolve(null); return; }
     try {
-      chrome.runtime.sendMessage(EXT_ID, {action:"getStatus"}, (res) => {
-        clearTimeout(timer);
-        resolve(!chrome.runtime.lastError && !!res);
+      chrome.runtime.sendMessage(EXT_ID, msg, (res) => {
+        if (chrome.runtime.lastError) { resolve(null); return; }
+        resolve(res);
       });
-    } catch { clearTimeout(timer); resolve(false); }
+    } catch { resolve(null); }
+    setTimeout(() => resolve(null), 3000);
   });
 }
 
-function showExtBanner()   { document.getElementById("ext-banner").classList.add("show"); }
-function showProfileBadge(){ document.getElementById("ext-banner").classList.remove("show"); document.getElementById("ext-profile-badge").classList.add("show"); }
-function dismissBanner()   { document.getElementById("ext-banner").classList.remove("show"); sessionStorage.setItem("extBannerDismissed","1"); }
+async function checkExtension() {
+  if (sessionStorage.getItem("extBannerDismissed")) return;
 
-// --- Chapter & progress ---
+  const res = await sendToExt({ action: "getProfile" });
+  if (res && res.profile) {
+    hasExtension = true;
+    hasProfile   = true;
+    showProfileBadge(res.profile);
+    return;
+  }
+
+  if (typeof chrome !== "undefined" && chrome.runtime) {
+    const ping = await sendToExt({ action: "ping" });
+    if (ping !== null) { hasExtension = true; return; }
+  }
+
+  showExtBanner();
+}
+
+async function loadSavedState() {
+  const res = await sendToExt({ action: "loadState" });
+  if (res?.state && res.state.chapterIdx !== undefined) {
+    const s = res.state;
+    chapterIdx   = s.chapterIdx   || 0;
+    storyHistory = s.history      || [];
+    currentMood  = s.mood         || "curious";
+    const savedAt = s.savedAt ? new Date(s.savedAt) : null;
+    return { hasState: true, savedAt };
+  }
+  return { hasState: false };
+}
+
+async function saveState() {
+  await sendToExt({
+    action: "saveState",
+    state: {
+      chapterIdx,
+      history: storyHistory,
+      mood: currentMood,
+      timeOnPage,
+      pauseCount,
+      scrollBackCount,
+    }
+  });
+}
+
+// --- Banner ---
+function showExtBanner()    { document.getElementById("ext-banner").classList.add("show"); }
+function dismissBanner()    { document.getElementById("ext-banner").classList.remove("show"); sessionStorage.setItem("extBannerDismissed","1"); }
+function showProfileBadge(profile) {
+  document.getElementById("ext-banner").classList.remove("show");
+  const badge = document.getElementById("ext-profile-badge");
+  badge.classList.add("show");
+  if (profile?.totalSites) {
+    document.getElementById("profile-badge-text").textContent =
+      `Web profile active — ${profile.totalSites} sites, ${profile.timeOfDay} browsing`;
+  }
+}
+
+// --- Chapter header ---
 function updateChapterHeader() {
-  const ch = CHAPTERS[chapterIdx];
   document.getElementById("ch-label").textContent = "CHAPTER " + (chapterIdx+1);
-  document.getElementById("ch-title").textContent = ch.title;
+  document.getElementById("ch-title").textContent = CHAPTERS[chapterIdx].title;
   document.getElementById("progress-fill").style.width = Math.round(((chapterIdx+1)/CHAPTERS.length)*100) + "%";
 }
 
 // --- Mood ---
 function calcMood() {
-  const pauseRate  = pauseCount / (Math.max(timeOnPage,1)/60);
-  const scrollRate = scrollBackCount / (Math.max(timeOnPage,1)/60);
-  if (!isUserActive)          return "absent";
-  if (scrollRate > 1.5)       return "restless";
-  if (pauseRate > 2 && scrollRate < 1) return "deep";
-  if (timeOnPage > 30 && pauseCount < 2) return "deep";
-  if (pauseRate > 0.5)        return "curious";
+  const pr = pauseCount      / (Math.max(timeOnPage,1)/60);
+  const sr = scrollBackCount / (Math.max(timeOnPage,1)/60);
+  if (!isUserActive)              return "absent";
+  if (sr > 1.5)                   return "restless";
+  if (pr > 2 && sr < 1)           return "deep";
+  if (timeOnPage > 30 && pr < 2)  return "deep";
+  if (pr > 0.5)                   return "curious";
   return "curious";
 }
 
@@ -243,20 +263,20 @@ function updateMood() {
   if (mood !== prevMood) {
     prevMood = mood;
     currentMood = mood;
-    const pill = document.getElementById("mood-pill");
-    pill.className = "mood-pill mood-" + mood;
+    document.getElementById("mood-pill").className = "mood-pill mood-" + mood;
   }
 }
 
-// --- Inactivity / pause ---
+// --- Inactivity ---
 function onPause() {
   pauseCount++;
   updateMood();
   const prompt = document.getElementById("pause-prompt");
-  const idx = Math.min(pauseCount-1, PAUSE_PROMPTS.length-1);
-  prompt.textContent = PAUSE_PROMPTS[idx];
+  prompt.textContent = PAUSE_PROMPTS[Math.min(pauseCount-1, PAUSE_PROMPTS.length-1)];
   prompt.style.display = "block";
   setTimeout(() => { prompt.style.display = "none"; }, 4500);
+  // Auto-save on pause
+  saveState();
 }
 
 function resetInactivity() {
@@ -274,60 +294,84 @@ function onScroll() {
 }
 function onActivity() { if (isStarted) resetInactivity(); }
 
+// Save when tab closes / hides
+document.addEventListener("visibilitychange", () => {
+  if (document.hidden && isStarted) saveState();
+});
+window.addEventListener("beforeunload", () => {
+  if (isStarted) saveState();
+});
+
 // --- Generate ---
 async function generatePassage() {
   if (isLoading) return;
   isLoading = true;
+
   document.getElementById("story-prose").innerHTML =
     `<span class="story-hint" style="display:flex;align-items:center;gap:10px">
-       <span class="dot-pulse"><span></span><span></span><span></span></span>Shaping your narrative...
-     </span>`;
+      <span class="dot-pulse"><span></span><span></span><span></span></span>Shaping your narrative...
+    </span>`;
   document.getElementById("btn-next").style.display = "none";
 
-  try {
-    const res  = await fetch(API_BASE + "/generate", {
-      method: "POST",
-      headers: {"Content-Type":"application/json"},
-      body: JSON.stringify({
-        lang: "en",
-        chapter_idx: chapterIdx,
-        mood: currentMood,
-        time_on_page: timeOnPage,
-        pause_count: pauseCount,
-        scroll_back_count: scrollBackCount,
-        story_history: storyHistory,
-      })
-    });
-    const data = await res.json();
-    if (data.error) throw new Error(data.error);
-    if (data.hasWebProfile && !hasWebProfile) { hasWebProfile=true; showProfileBadge(); }
-    const text = data.text || "...";
-    storyHistory.push(text);
-    const html = text.split("\n").filter(p=>p.trim()).map(p=>`<p>${p.trim()}</p>`).join("");
+  const state = { chapterIdx, mood: currentMood, timeOnPage, pauseCount, scrollBackCount, history: storyHistory };
+  const res   = await sendToExt({ action: "generate", state });
+
+  if (res?.text && res.text !== "...") {
+    storyHistory.push(res.text);
+    const html = res.text.split("\n").filter(p=>p.trim()).map(p=>`<p>${p.trim()}</p>`).join("");
     document.getElementById("story-prose").innerHTML = html;
     if (chapterIdx < CHAPTERS.length-1) {
       const nb = document.getElementById("btn-next");
       nb.textContent = "Next chapter →";
       nb.style.display = "inline-block";
     }
-  } catch(e) {
+    // Auto-save after generating
+    saveState();
+  } else {
     document.getElementById("story-prose").innerHTML =
-      `<p class="story-hint">Could not connect to the server. Please try again.</p>`;
-    console.error(e);
+      `<p class="story-hint">Could not generate passage. Make sure the Adaptive Book extension is installed and active.</p>`;
   }
   isLoading = false;
 }
 
-function startReading() {
-  isStarted = true;
-  readingStartTime = Date.now();
+// --- Start / resume ---
+async function startReading() {
   document.getElementById("btn-start").style.display = "none";
+
+  // Try to restore saved state
+  const { hasState, savedAt } = await loadSavedState();
+  if (hasState) {
+    updateChapterHeader();
+    if (storyHistory.length > 0) {
+      // Show last passage
+      const last = storyHistory[storyHistory.length-1];
+      const html = last.split("\n").filter(p=>p.trim()).map(p=>`<p>${p.trim()}</p>`).join("");
+      document.getElementById("story-prose").innerHTML = html;
+      if (chapterIdx < CHAPTERS.length-1) {
+        const nb = document.getElementById("btn-next");
+        nb.textContent = "Next chapter →";
+        nb.style.display = "inline-block";
+      }
+      isStarted = true;
+      beginTracking();
+      return;
+    }
+  }
+
+  isStarted = true;
+  beginTracking();
   generatePassage();
+}
+
+function beginTracking() {
+  readingStartTime = Date.now();
   pageTimer = setInterval(() => { timeOnPage++; updateMood(); }, 1000);
   window.addEventListener("scroll", onScroll, {passive:true});
   ["mousemove","keydown","click","touchstart"].forEach(ev =>
     window.addEventListener(ev, onActivity, {passive:true}));
   resetInactivity();
+  // Auto-save every 30s
+  autoSaveTimer = setInterval(saveState, 30000);
 }
 
 function nextChapter() {
@@ -341,7 +385,7 @@ function nextChapter() {
 function resetAll() {
   isStarted=false; chapterIdx=0; pauseCount=0; scrollBackCount=0; timeOnPage=0;
   currentMood="absent"; prevMood=""; storyHistory=[];
-  clearInterval(pageTimer); clearTimeout(inactivityTimer);
+  clearInterval(pageTimer); clearInterval(autoSaveTimer); clearTimeout(inactivityTimer);
   window.removeEventListener("scroll", onScroll);
   ["mousemove","keydown","click","touchstart"].forEach(ev =>
     window.removeEventListener(ev, onActivity));
@@ -350,9 +394,14 @@ function resetAll() {
   document.getElementById("pause-prompt").style.display = "none";
   document.getElementById("progress-fill").style.width = "0%";
   document.getElementById("mood-pill").className = "mood-pill mood-absent";
+  document.getElementById("story-prose").innerHTML =
+    `<p class="story-hint">Begin reading. The book watches how you read — not what you read, but the quality of your attention. It will adapt.</p>`;
   updateChapterHeader();
+  // Clear saved state
+  sendToExt({ action: "saveState", state: { chapterIdx:0, history:[], mood:"absent" } });
 }
 
+// Init
 updateChapterHeader();
 checkExtension();
 </script>
