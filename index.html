@@ -401,7 +401,8 @@ async function generateNextPage(){
   const chapterChanging = shouldChangeChapter();
   if(chapterChanging) currentChapterIdx++;
   const isFirst = pages.length === 0;
-  const history=pages.slice(-3).map(p=>p.text);
+  // Send full history for anti-repetition — model needs to see all previous text
+  const history = pages.map(p => p.text);
   lastGenerateTime = Date.now();
   const res=await sendToExt({action:"generate",state:{chapterIdx:currentChapterIdx,mood:currentMood,timeOnPage,pauseCount,scrollBackCount,history,isChapterStart:chapterChanging||isFirst}},20000);
 
