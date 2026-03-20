@@ -1,9 +1,417 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>GitHub Pages</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Adaptive Book</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #ffffff;
+    --bg2: #f5f4f0;
+    --bg3: #eceae4;
+    --text: #1a1a18;
+    --text2: #5a5955;
+    --text3: #9a9894;
+    --border: rgba(0,0,0,0.1);
+    --border2: rgba(0,0,0,0.2);
+    --radius: 8px;
+    --radius-lg: 12px;
+    --serif: Georgia, 'Times New Roman', serif;
+    --sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    --mono: 'SF Mono', 'Fira Code', monospace;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #1a1918;
+      --bg2: #242320;
+      --bg3: #2e2c29;
+      --text: #e8e6e0;
+      --text2: #9a9890;
+      --text3: #5a5855;
+      --border: rgba(255,255,255,0.1);
+      --border2: rgba(255,255,255,0.2);
+    }
+  }
+
+  body { background: var(--bg); color: var(--text); font-family: var(--sans); min-height: 100vh; }
+
+  #app { max-width: 720px; margin: 0 auto; padding: 2rem 1.25rem 4rem; }
+
+  .lang-row { display: flex; gap: 8px; margin-bottom: 2rem; }
+  .lbtn { padding: 5px 14px; font-size: 13px; border: 0.5px solid var(--border2); border-radius: var(--radius); background: transparent; color: var(--text2); cursor: pointer; transition: all .15s; font-family: var(--sans); }
+  .lbtn:hover { background: var(--bg2); }
+  .lbtn.on { background: var(--bg2); color: var(--text); font-weight: 500; border-color: var(--border2); }
+
+  .signals-bar { display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: 8px; margin-bottom: 1.5rem; }
+  .sig { background: var(--bg2); border-radius: var(--radius); padding: 10px 8px; text-align: center; }
+  .sig .sv { font-size: 17px; font-weight: 500; color: var(--text); display: flex; align-items: center; justify-content: center; gap: 4px; }
+  .sig .sl { font-size: 11px; color: var(--text3); margin-top: 3px; }
+  .si { width: 7px; height: 7px; border-radius: 50%; display: inline-block; flex-shrink: 0; }
+
+  .progress-track { height: 3px; background: var(--border); border-radius: 2px; margin-bottom: 1.75rem; overflow: hidden; }
+  .progress-fill { height: 100%; background: #534AB7; border-radius: 2px; transition: width .5s ease; }
+
+  .ch-header { margin-bottom: 1.25rem; }
+  .ch-label { font-size: 11px; color: var(--text3); letter-spacing: .07em; margin-bottom: 5px; }
+  .ch-title { font-size: 22px; font-weight: 500; font-family: var(--serif); color: var(--text); line-height: 1.3; }
+
+  .story-wrap { position: relative; margin-bottom: 1rem; }
+  .story-card { background: var(--bg); border: 0.5px solid var(--border); border-radius: var(--radius-lg); padding: 1.75rem; min-height: 240px; }
+  .story-prose { font-family: var(--serif); font-size: 17px; line-height: 1.95; color: var(--text); }
+  .story-prose p { margin-bottom: 1.1rem; }
+  .story-prose p:last-child { margin-bottom: 0; }
+  .story-hint { color: var(--text3); font-style: italic; font-size: 14px; font-family: var(--sans); }
+
+  .mood-pill { position: absolute; top: 14px; right: 14px; font-size: 11px; padding: 3px 10px; border-radius: 10px; }
+  .mood-deep        { background: #EEEDFE; color: #534AB7; }
+  .mood-curious     { background: #E1F5EE; color: #0F6E56; }
+  .mood-restless    { background: #FAEEDA; color: #854F0B; }
+  .mood-absent      { background: var(--bg2); color: var(--text3); }
+
+  .pause-prompt { background: var(--bg2); border: 0.5px solid var(--border); border-radius: var(--radius); padding: 12px 16px; margin-bottom: 1rem; font-size: 13px; color: var(--text2); font-style: italic; display: none; line-height: 1.6; }
+
+  .btn-row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 1rem; }
+  .btn-p { padding: 9px 22px; font-size: 14px; border: 0.5px solid var(--border2); border-radius: var(--radius); background: var(--bg2); color: var(--text); cursor: pointer; transition: all .15s; font-family: var(--sans); }
+  .btn-p:hover { background: var(--bg3); }
+  .btn-p:active { transform: scale(.98); }
+  .btn-p:disabled { opacity: .4; cursor: default; }
+  .btn-s { padding: 9px 16px; font-size: 13px; border: 0.5px solid var(--border); border-radius: var(--radius); background: transparent; color: var(--text2); cursor: pointer; transition: all .15s; font-family: var(--sans); }
+  .btn-s:hover { background: var(--bg2); }
+
+  .dot-pulse { display: inline-flex; gap: 4px; align-items: center; }
+  .dot-pulse span { width: 6px; height: 6px; border-radius: 50%; background: var(--text3); animation: dp 1.2s infinite; }
+  .dot-pulse span:nth-child(2) { animation-delay: .2s; }
+  .dot-pulse span:nth-child(3) { animation-delay: .4s; }
+  @keyframes dp { 0%,80%,100% { opacity:.3; transform:scale(.8); } 40% { opacity:1; transform:scale(1); } }
+
+  .behavior-log { margin-top: 2rem; border-top: 0.5px solid var(--border); padding-top: 1rem; }
+  .blog-label { font-size: 11px; color: var(--text3); letter-spacing: .06em; margin-bottom: .75rem; }
+  .blog-item { display: flex; align-items: baseline; gap: 8px; padding: 5px 0; border-bottom: 0.5px solid var(--border); font-size: 12px; }
+  .blog-item:last-child { border-bottom: none; }
+  .blog-time { color: var(--text3); min-width: 48px; font-family: var(--mono); }
+  .blog-event { color: var(--text2); flex: 1; }
+  .blog-badge { font-size: 11px; padding: 2px 7px; border-radius: 8px; white-space: nowrap; }
+</style>
 </head>
 <body>
-    <h1>GitHub Pages is working!</h1>
+<div id="app">
+
+  <div class="lang-row">
+    <button class="lbtn on" id="l-en" onclick="setLang('en')">English</button>
+    <button class="lbtn"    id="l-tr" onclick="setLang('tr')">Türkçe</button>
+  </div>
+
+  <div class="signals-bar">
+    <div class="sig"><div class="sv" id="sig-time">0s</div><div class="sl" id="sig-time-l">on page</div></div>
+    <div class="sig"><div class="sv" id="sig-pauses">0</div><div class="sl" id="sig-pauses-l">pauses</div></div>
+    <div class="sig"><div class="sv" id="sig-scrolls">0</div><div class="sl" id="sig-scrolls-l">scroll-backs</div></div>
+    <div class="sig">
+      <div class="sv"><span class="si" id="mood-dot" style="background:#9a9894"></span><span id="sig-mood">—</span></div>
+      <div class="sl" id="sig-mood-l">reading mood</div>
+    </div>
+  </div>
+
+  <div class="progress-track"><div class="progress-fill" id="progress-fill" style="width:0%"></div></div>
+
+  <div class="ch-header">
+    <div class="ch-label" id="ch-label">CHAPTER 1</div>
+    <div class="ch-title" id="ch-title">The Self You Cannot Step Away From</div>
+  </div>
+
+  <div class="story-wrap">
+    <div class="mood-pill mood-absent" id="mood-pill">calibrating</div>
+    <div class="story-card">
+      <div class="story-prose" id="story-prose">
+        <p class="story-hint" id="hint-text">Begin reading. The book watches how you read — not what you read, but the quality of your attention. It will adapt.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="pause-prompt" id="pause-prompt"></div>
+
+  <div class="btn-row">
+    <button class="btn-p" id="btn-start"  onclick="startReading()">Begin reading →</button>
+    <button class="btn-p" id="btn-next"   onclick="nextChapter()"  style="display:none">Next chapter →</button>
+    <button class="btn-s" id="btn-reset"  onclick="resetAll()">Reset</button>
+  </div>
+
+  <div class="behavior-log" id="behavior-log" style="display:none">
+    <div class="blog-label" id="blog-label">READING SIGNALS</div>
+    <div id="blog-list"></div>
+  </div>
+
+</div>
+
+<script>
+const API_BASE = "";   // empty = same origin (FastAPI serves this file)
+
+const CHAPTERS = {
+  en:[
+    {title:"The Self You Cannot Step Away From", theme:"opening — presence and the inescapable now"},
+    {title:"The Weight of Half-Attention",        theme:"distraction, depth, and what gets lost"},
+    {title:"Returning",                           theme:"the meaning of going back, re-reading, dwelling"},
+    {title:"Stillness as Statement",              theme:"what patience reveals about desire"},
+    {title:"Who You Became While Reading",        theme:"closing — transformation through attention"},
+  ],
+  tr:[
+    {title:"Uzaklaşamadığın Benlik",              theme:"açılış — şimdide var olma"},
+    {title:"Yarım Dikkatın Ağırlığı",             theme:"dağınıklık, derinlik ve kaybolan şey"},
+    {title:"Geri Dönmek",                         theme:"geri gitmenin, yeniden okumanın anlamı"},
+    {title:"Durgunluk Bir Bildiri Olarak",        theme:"sabrın arzu hakkında ne gösterdiği"},
+    {title:"Okurken Kim Oldun",                   theme:"kapanış — dikkat yoluyla dönüşüm"},
+  ],
+};
+
+const MOODS_LABEL = {
+  en:{ deep:"deep", curious:"curious", restless:"restless", absent:"drifting" },
+  tr:{ deep:"derin", curious:"meraklı", restless:"huzursuz", absent:"dağınık" },
+};
+
+const UI = {
+  en:{
+    onPage:"on page", pauses:"pauses", scrollBacks:"scroll-backs", readingMood:"reading mood",
+    chLabel:"CHAPTER", beginBtn:"Begin reading →", nextBtn:"Next chapter →", resetBtn:"Reset",
+    signalsLabel:"READING SIGNALS", calibrating:"calibrating", loading:"Shaping your narrative...",
+    hintText:"Begin reading. The book watches how you read — not what you read, but the quality of your attention. It will adapt.",
+    pausePrompts:[
+      "You paused. The book noticed. What were you sitting with just then?",
+      "A second pause. Something in the text is asking something of you.",
+      "You keep returning. That's not restlessness — it's the shape of thinking.",
+    ],
+    logLabels:{ start:"Started reading", pause:"Paused", resume:"Resumed", scrollback:"Scrolled back", chapter:"Advanced to chapter", mood_shift:"Mood shifted to" },
+    errorText:"Could not connect to the server. Make sure the FastAPI backend is running on port 8000.",
+  },
+  tr:{
+    onPage:"sayfada", pauses:"duraklama", scrollBacks:"geri sarma", readingMood:"okuma modu",
+    chLabel:"BÖLÜM", beginBtn:"Okumaya başla →", nextBtn:"Sonraki bölüm →", resetBtn:"Sıfırla",
+    signalsLabel:"OKUMA SİNYALLERİ", calibrating:"kalibrasyon", loading:"Anlatın şekilleniyor...",
+    hintText:"Okumaya başla. Kitap seni nasıl okuduğunu izleyecek — neyi okuduğunu değil, dikkatinin kalitesini. Uyum sağlayacak.",
+    pausePrompts:[
+      "Durdun. Kitap fark etti. Az önce ne düşünüyordun?",
+      "İkinci duraklama. Metinde sana bir şey soruyor.",
+      "Geri dönmeye devam ediyorsun. Bu huzursuzluk değil — düşüncenin biçimi bu.",
+    ],
+    logLabels:{ start:"Okumaya başladı", pause:"Duraklandı", resume:"Devam etti", scrollback:"Geri sardı", chapter:"Bölüme geçti", mood_shift:"Mod değişti:" },
+    errorText:"Sunucuya bağlanılamadı. FastAPI backend'in 8000 portunda çalıştığından emin ol.",
+  },
+};
+
+let lang='en', chapterIdx=0, isLoading=false, isStarted=false;
+let timeOnPage=0, pauseCount=0, scrollBackCount=0, currentMood='absent', prevMood='';
+let lastScrollY=0, pageTimer=null, inactivityTimer=null, isUserActive=true;
+let behaviorLog=[], storyHistory=[], readingStartTime=null;
+
+function setLang(l){
+  lang=l;
+  ['en','tr'].forEach(x=>document.getElementById('l-'+x).classList.toggle('on',x===l));
+  applyUI();
+}
+
+function applyUI(){
+  const t=UI[lang];
+  document.getElementById('sig-time-l').textContent=t.onPage;
+  document.getElementById('sig-pauses-l').textContent=t.pauses;
+  document.getElementById('sig-scrolls-l').textContent=t.scrollBacks;
+  document.getElementById('sig-mood-l').textContent=t.readingMood;
+  document.getElementById('btn-reset').textContent=t.resetBtn;
+  document.getElementById('blog-label').textContent=t.signalsLabel;
+  if(!isStarted){
+    document.getElementById('btn-start').textContent=t.beginBtn;
+    document.getElementById('btn-next').textContent=t.nextBtn;
+    const hint=document.getElementById('hint-text');
+    if(hint) hint.textContent=t.hintText;
+    document.getElementById('mood-pill').textContent=t.calibrating;
+  }
+  updateChapterHeader();
+}
+
+function updateChapterHeader(){
+  const t=UI[lang];
+  const ch=CHAPTERS[lang][chapterIdx];
+  document.getElementById('ch-label').textContent=t.chLabel+' '+(chapterIdx+1);
+  document.getElementById('ch-title').textContent=ch.title;
+  document.getElementById('progress-fill').style.width=Math.round(((chapterIdx+1)/CHAPTERS[lang].length)*100)+'%';
+}
+
+function logEvent(type, detail=''){
+  const t=UI[lang];
+  const elapsed=readingStartTime?Math.round((Date.now()-readingStartTime)/1000):0;
+  const mins=Math.floor(elapsed/60), secs=elapsed%60;
+  const timeStr=(mins>0?mins+'m ':'')+secs+'s';
+  behaviorLog.unshift({time:timeStr,type,detail});
+  if(behaviorLog.length>12) behaviorLog.pop();
+  renderLog();
+}
+
+const BADGE_STYLES={
+  start:    {bg:'#E1F5EE',color:'#0F6E56'},
+  pause:    {bg:'#FAEEDA',color:'#854F0B'},
+  resume:   {bg:'#E1F5EE',color:'#0F6E56'},
+  scrollback:{bg:'#EEEDFE',color:'#534AB7'},
+  chapter:  {bg:'#EEEDFE',color:'#534AB7'},
+  mood_shift:{bg:'#E6F1FB',color:'#185FA5'},
+};
+
+function renderLog(){
+  const t=UI[lang];
+  const list=document.getElementById('blog-list');
+  list.innerHTML=behaviorLog.map(e=>{
+    const b=BADGE_STYLES[e.type]||{bg:'var(--bg2)',color:'var(--text2)'};
+    return `<div class="blog-item">
+      <span class="blog-time">${e.time}</span>
+      <span class="blog-event">${t.logLabels[e.type]||e.type}${e.detail?' — '+e.detail:''}</span>
+      <span class="blog-badge" style="background:${b.bg};color:${b.color}">${e.type}</span>
+    </div>`;
+  }).join('');
+  document.getElementById('behavior-log').style.display='block';
+}
+
+function calcMood(){
+  const pauseRate=pauseCount/(Math.max(timeOnPage,1)/60);
+  const scrollRate=scrollBackCount/(Math.max(timeOnPage,1)/60);
+  if(!isUserActive) return 'absent';
+  if(scrollRate>1.5) return 'restless';
+  if(pauseRate>2&&scrollRate<1) return 'deep';
+  if(timeOnPage>30&&pauseCount<2) return 'deep';
+  if(pauseRate>0.5) return 'curious';
+  return 'curious';
+}
+
+function updateSignals(){
+  document.getElementById('sig-time').textContent=timeOnPage+'s';
+  document.getElementById('sig-pauses').textContent=pauseCount;
+  document.getElementById('sig-scrolls').textContent=scrollBackCount;
+  const mood=calcMood();
+  document.getElementById('sig-mood').textContent=MOODS_LABEL[lang][mood]||mood;
+  if(mood!==prevMood){
+    prevMood=mood;
+    currentMood=mood;
+    const dot=document.getElementById('mood-dot');
+    const pill=document.getElementById('mood-pill');
+    const dotColors={deep:'#534AB7',curious:'#1D9E75',restless:'#EF9F27',absent:'#9a9894'};
+    dot.style.background=dotColors[mood]||'#9a9894';
+    pill.className='mood-pill mood-'+mood;
+    pill.textContent=MOODS_LABEL[lang][mood];
+    if(isStarted) logEvent('mood_shift', MOODS_LABEL[lang][mood]);
+  }
+}
+
+function onPause(){
+  pauseCount++;
+  updateSignals();
+  logEvent('pause');
+  const t=UI[lang];
+  const prompt=document.getElementById('pause-prompt');
+  const idx=Math.min(pauseCount-1,t.pausePrompts.length-1);
+  prompt.textContent=t.pausePrompts[idx];
+  prompt.style.display='block';
+  setTimeout(()=>{ prompt.style.display='none'; },4500);
+}
+
+function resetInactivity(){
+  clearTimeout(inactivityTimer);
+  if(!isUserActive){ isUserActive=true; logEvent('resume'); }
+  isUserActive=true;
+  inactivityTimer=setTimeout(()=>{ isUserActive=false; updateSignals(); onPause(); },8000);
+}
+
+function onScroll(){
+  if(!isStarted) return;
+  const y=window.scrollY||document.documentElement.scrollTop;
+  if(y<lastScrollY-50){ scrollBackCount++; logEvent('scrollback'); updateSignals(); }
+  lastScrollY=y;
+  resetInactivity();
+}
+
+function onActivity(){ if(isStarted) resetInactivity(); }
+
+async function generatePassage(){
+  if(isLoading) return;
+  isLoading=true;
+  const t=UI[lang];
+  document.getElementById('story-prose').innerHTML=
+    `<span class="story-hint" style="display:flex;align-items:center;gap:10px">
+       <span class="dot-pulse"><span></span><span></span><span></span></span>${t.loading}
+     </span>`;
+  document.getElementById('btn-next').style.display='none';
+
+  try{
+    const res=await fetch(API_BASE+'/generate',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        lang, chapter_idx:chapterIdx, mood:currentMood,
+        time_on_page:timeOnPage, pause_count:pauseCount,
+        scroll_back_count:scrollBackCount, story_history:storyHistory,
+      })
+    });
+    const data=await res.json();
+    if(data.error) throw new Error(data.error);
+    const text=data.text||'...';
+    storyHistory.push(text);
+    const html=text.split('\n').filter(p=>p.trim()).map(p=>`<p>${p.trim()}</p>`).join('');
+    document.getElementById('story-prose').innerHTML=html;
+    if(chapterIdx<CHAPTERS[lang].length-1){
+      const nb=document.getElementById('btn-next');
+      nb.textContent=t.nextBtn;
+      nb.style.display='inline-block';
+    }
+  }catch(e){
+    document.getElementById('story-prose').innerHTML=
+      `<p class="story-hint">${UI[lang].errorText}</p>`;
+    console.error(e);
+  }
+  isLoading=false;
+}
+
+function startReading(){
+  isStarted=true;
+  readingStartTime=Date.now();
+  document.getElementById('btn-start').style.display='none';
+  logEvent('start');
+  generatePassage();
+  pageTimer=setInterval(()=>{ timeOnPage++; updateSignals(); },1000);
+  window.addEventListener('scroll',onScroll,{passive:true});
+  ['mousemove','keydown','click','touchstart'].forEach(ev=>
+    window.addEventListener(ev,onActivity,{passive:true}));
+  resetInactivity();
+}
+
+function nextChapter(){
+  if(chapterIdx>=CHAPTERS[lang].length-1||isLoading) return;
+  chapterIdx++;
+  logEvent('chapter','#'+(chapterIdx+1));
+  updateChapterHeader();
+  pauseCount=0; scrollBackCount=0; timeOnPage=0;
+  updateSignals();
+  generatePassage();
+}
+
+function resetAll(){
+  isStarted=false; chapterIdx=0; pauseCount=0; scrollBackCount=0; timeOnPage=0;
+  currentMood='absent'; prevMood=''; storyHistory=[]; behaviorLog=[];
+  clearInterval(pageTimer); clearTimeout(inactivityTimer);
+  ['scroll','mousemove','keydown','click','touchstart'].forEach(ev=>
+    window.removeEventListener(ev,ev==='scroll'?onScroll:onActivity));
+  document.getElementById('btn-start').style.display='inline-block';
+  document.getElementById('btn-next').style.display='none';
+  document.getElementById('behavior-log').style.display='none';
+  document.getElementById('blog-list').innerHTML='';
+  document.getElementById('pause-prompt').style.display='none';
+  document.getElementById('progress-fill').style.width='0%';
+  document.getElementById('sig-time').textContent='0s';
+  document.getElementById('sig-pauses').textContent='0';
+  document.getElementById('sig-scrolls').textContent='0';
+  document.getElementById('sig-mood').textContent='—';
+  document.getElementById('mood-dot').style.background='#9a9894';
+  document.getElementById('mood-pill').className='mood-pill mood-absent';
+  applyUI();
+}
+
+applyUI();
+</script>
 </body>
 </html>
