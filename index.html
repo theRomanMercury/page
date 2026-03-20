@@ -12,6 +12,8 @@
     --border: rgba(0,0,0,0.08); --border2: rgba(0,0,0,0.15);
     --purple: #534AB7;
     --sidebar: 240px;
+    --topbar-h: 52px;
+    --bottombar-h: 56px;
     --serif: Georgia, 'Times New Roman', serif;
     --sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   }
@@ -25,139 +27,165 @@
   html, body { height: 100%; overflow: hidden; }
   body { background: var(--bg); color: var(--text); font-family: var(--sans); display: flex; }
 
-  /* Sidebar */
+  /* ── Sidebar ── */
   #sidebar {
     width: var(--sidebar); min-width: var(--sidebar);
-    background: var(--bg2); border-right: 0.5px solid var(--border2);
-    display: flex; flex-direction: column; height: 100vh;
+    background: var(--bg2);
+    border-right: 0.5px solid var(--border2);
+    display: flex; flex-direction: column;
+    height: 100vh;
     transition: width 0.25s ease, min-width 0.25s ease, opacity 0.2s ease;
     overflow: hidden; flex-shrink: 0;
   }
   #sidebar.collapsed { width: 0; min-width: 0; opacity: 0; pointer-events: none; }
+
   .sidebar-head {
     display: flex; align-items: center; justify-content: space-between;
-    padding: 0 1rem; border-bottom: 0.5px solid var(--border);
-    flex-shrink: 0; height: 52px;
+    padding: 0 1rem; height: var(--topbar-h);
+    border-bottom: 0.5px solid var(--border); flex-shrink: 0;
   }
   .sidebar-title { font-family: var(--serif); font-size: 17px; font-weight: 500; color: var(--text); white-space: nowrap; }
-  .btn-collapse { background: none; border: none; cursor: pointer; color: var(--text3); padding: 2px 4px; font-size: 16px; line-height: 1; border-radius: 4px; transition: all .15s; }
-  .btn-collapse:hover { color: var(--text2); background: var(--bg3); }
+  .btn-icon { background: none; border: none; cursor: pointer; color: var(--text3); padding: 4px 6px; border-radius: 4px; transition: all .15s; line-height: 1; }
+  .btn-icon:hover { color: var(--text2); background: var(--bg3); }
+
   .tree { flex: 1; overflow-y: auto; padding: 0.5rem 0; }
-  .tree::-webkit-scrollbar { width: 4px; }
+  .tree::-webkit-scrollbar { width: 3px; }
   .tree::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
-  .tree-chapter { display: flex; align-items: flex-start; gap: 6px; padding: 9px 1rem 6px; cursor: pointer; transition: all .15s; border-top: 0.5px solid var(--border); }
-  .tree-chapter:first-child { border-top: none; }
-  .tree-chapter:hover { background: var(--bg3); }
-  .tree-arrow { font-size: 9px; color: var(--text3); margin-top: 3px; flex-shrink: 0; user-select: none; }
-  .tree-chapter-title { font-size: 12px; color: var(--text2); font-weight: 500; line-height: 1.4; }
-  .tree-chapter.active-ch .tree-chapter-title { color: var(--text); }
-  .tree-item { display: flex; align-items: center; gap: 8px; padding: 5px 1rem 5px 1.75rem; font-size: 12px; color: var(--text3); cursor: pointer; transition: all .15s; border-left: 2px solid transparent; }
-  .tree-item:hover { color: var(--text2); background: var(--bg3); }
-  .tree-item.active { color: var(--text); border-left-color: var(--purple); }
-  .tree-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--border2); flex-shrink: 0; }
-  .tree-dot.active { background: var(--purple); }
-  .tree-empty { padding: 1rem; font-size: 12px; color: var(--text3); font-style: italic; }
-  .sidebar-bottom { padding: 0.75rem 1rem; border-top: 0.5px solid var(--border); flex-shrink: 0; }
-  .btn-startover { font-size: 12px; color: var(--text3); background: none; border: none; font-family: var(--sans); cursor: pointer; padding: 0; }
-  .btn-startover:hover { color: #E24B4A; }
 
-  /* Main */
-  #main { flex: 1; display: flex; flex-direction: column; height: 100vh; overflow: hidden; min-width: 0; }
-  .topbar { display: flex; align-items: center; gap: 10px; padding: 0 1.5rem; border-bottom: 0.5px solid var(--border); flex-shrink: 0; height: 52px; }
-  .btn-toggle-sidebar { background: none; border: none; cursor: pointer; color: var(--text3); font-size: 18px; line-height: 1; padding: 2px 6px; border-radius: 4px; transition: all .15s; }
-  .btn-toggle-sidebar:hover { color: var(--text2); background: var(--bg2); }
-  .topbar-title { font-family: var(--serif); font-size: 15px; color: var(--text2); }
+  .tree-chapter { display:flex; align-items:flex-start; gap:6px; padding:9px 1rem 6px; cursor:pointer; transition:all .15s; border-top:0.5px solid var(--border); }
+  .tree-chapter:first-child { border-top:none; }
+  .tree-chapter:hover { background:var(--bg3); }
+  .tree-arrow { font-size:9px; color:var(--text3); margin-top:3px; flex-shrink:0; user-select:none; }
+  .tree-chapter-title { font-size:12px; color:var(--text2); font-weight:500; line-height:1.4; }
+  .tree-chapter.active-ch .tree-chapter-title { color:var(--text); }
+  .tree-item { display:flex; align-items:center; gap:8px; padding:5px 1rem 5px 1.75rem; font-size:12px; color:var(--text3); cursor:pointer; transition:all .15s; border-left:2px solid transparent; }
+  .tree-item:hover { color:var(--text2); background:var(--bg3); }
+  .tree-item.active { color:var(--text); border-left-color:var(--purple); }
+  .tree-dot { width:5px; height:5px; border-radius:50%; background:var(--border2); flex-shrink:0; }
+  .tree-dot.active { background:var(--purple); }
+  .tree-empty { padding:1rem; font-size:12px; color:var(--text3); font-style:italic; }
 
-  /* Reading area */
-  #reading-area { flex: 1; overflow-y: auto; padding: 3rem 5rem; }
-  #reading-area::-webkit-scrollbar { width: 6px; }
-  #reading-area::-webkit-scrollbar-track { background: var(--bg); }
-  #reading-area::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
-  #reading-area::-webkit-scrollbar-thumb:hover { background: var(--text3); }
-  @media (max-width: 768px) { #reading-area { padding: 2rem 1.5rem; } }
+  .sidebar-bottom {
+    padding: 0 1rem; height: var(--bottombar-h);
+    border-top: 0.5px solid var(--border);
+    display: flex; align-items: center; gap: 8px;
+    flex-shrink: 0;
+  }
+  .btn-startover { font-size:12px; color:var(--text3); background:none; border:none; font-family:var(--sans); cursor:pointer; padding:0; white-space:nowrap; }
+  .btn-startover:hover { color:#E24B4A; }
+  .btn-share { font-size:12px; color:var(--text3); background:none; border:0.5px solid var(--border2); font-family:var(--sans); cursor:pointer; padding:4px 8px; border-radius:6px; transition:all .15s; white-space:nowrap; }
+  .btn-share:hover { color:var(--text2); background:var(--bg3); }
+  .btn-save { font-size:12px; color:var(--purple); background:none; border:0.5px solid var(--purple); font-family:var(--sans); cursor:pointer; padding:4px 8px; border-radius:6px; transition:all .15s; white-space:nowrap; opacity:0.8; }
+  .btn-save:hover { opacity:1; background:var(--bg3); }
 
-  /* Bottom nav */
-  .bottom-nav { display: flex; align-items: center; gap: 10px; padding: 0 5rem; border-top: 0.5px solid var(--border); flex-shrink: 0; height: 60px; }
-  @media (max-width: 768px) { .bottom-nav { padding: 0 1.5rem; } }
-  .page-counter { margin-left: auto; font-size: 12px; color: var(--text3); }
+  /* ── Main ── */
+  #main { flex:1; display:flex; flex-direction:column; height:100vh; overflow:hidden; min-width:0; }
+
+  .topbar {
+    display:flex; align-items:center; gap:10px; padding:0 1.5rem;
+    border-bottom:0.5px solid var(--border);
+    height: var(--topbar-h); flex-shrink:0;
+  }
+  .topbar-title { font-family:var(--serif); font-size:15px; color:var(--text2); }
+
+  #reading-area { flex:1; overflow-y:auto; padding:3rem 5rem; }
+  #reading-area::-webkit-scrollbar { width:6px; }
+  #reading-area::-webkit-scrollbar-track { background:var(--bg); }
+  #reading-area::-webkit-scrollbar-thumb { background:var(--border2); border-radius:3px; }
+  #reading-area::-webkit-scrollbar-thumb:hover { background:var(--text3); }
+  @media (max-width: 768px) { #reading-area { padding:2rem 1.5rem; } }
+
+  .bottom-nav {
+    display:flex; align-items:center; gap:8px; padding:0 5rem;
+    border-top:0.5px solid var(--border);
+    height: var(--bottombar-h); flex-shrink:0;
+  }
+  @media (max-width: 768px) { .bottom-nav { padding:0 1.5rem; } }
+  .page-counter { margin-left:auto; font-size:12px; color:var(--text3); }
 
   /* Loading */
-  #loading-screen { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; }
-  #loading-screen p { font-size: 14px; color: var(--text3); margin-top: 1rem; font-style: italic; }
-  .spinner { width: 28px; height: 28px; border: 2px solid var(--border2); border-top-color: var(--purple); border-radius: 50%; animation: spin .8s linear infinite; }
-  @keyframes spin { to { transform: rotate(360deg); } }
-  #book-content { display: none; }
+  #loading-screen { display:flex; flex-direction:column; align-items:center; justify-content:center; height:100%; }
+  #loading-screen p { font-size:14px; color:var(--text3); margin-top:1rem; font-style:italic; }
+  .spinner { width:28px; height:28px; border:2px solid var(--border2); border-top-color:var(--purple); border-radius:50%; animation:spin .8s linear infinite; }
+  @keyframes spin { to { transform:rotate(360deg); } }
+
+  #book-content { display:none; }
 
   /* Extension banner */
-  .ext-banner { display: none; }
-  .ext-banner.show { display: flex; align-items: flex-start; gap: 12px; background: var(--bg2); border: 0.5px solid var(--border2); border-radius: 10px; padding: 14px 16px; margin-bottom: 2rem; }
-  .ext-icon { width: 32px; height: 32px; border-radius: 8px; background: var(--purple); flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
-  .ext-icon svg { width: 16px; height: 16px; }
-  .ext-body { flex: 1; }
-  .ext-title { font-size: 13px; font-weight: 500; color: var(--text); margin-bottom: 3px; }
-  .ext-desc { font-size: 12px; color: var(--text2); line-height: 1.5; margin-bottom: 8px; }
-  .ext-steps { list-style: none; margin: 0 0 8px; padding: 0; }
-  .ext-steps li { font-size: 12px; color: var(--text2); padding: 2px 0; display: flex; gap: 8px; }
-  .ext-steps li .n { font-size: 10px; background: var(--purple); color: #fff; border-radius: 50%; min-width: 15px; height: 15px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
-  .ext-dismiss { font-size: 11px; color: var(--text3); background: none; border: none; font-family: var(--sans); cursor: pointer; padding: 0; }
-  .ext-dismiss:hover { color: var(--text2); }
+  .ext-banner { display:none; }
+  .ext-banner.show { display:flex; align-items:flex-start; gap:12px; background:var(--bg2); border:0.5px solid var(--border2); border-radius:10px; padding:14px 16px; margin-bottom:2rem; }
+  .ext-icon { width:32px; height:32px; border-radius:8px; background:var(--purple); flex-shrink:0; display:flex; align-items:center; justify-content:center; }
+  .ext-icon svg { width:16px; height:16px; }
+  .ext-body { flex:1; }
+  .ext-title { font-size:13px; font-weight:500; color:var(--text); margin-bottom:3px; }
+  .ext-desc { font-size:12px; color:var(--text2); line-height:1.5; margin-bottom:8px; }
+  .ext-steps { list-style:none; margin:0 0 8px; padding:0; }
+  .ext-steps li { font-size:12px; color:var(--text2); padding:2px 0; display:flex; gap:8px; }
+  .ext-steps li .n { font-size:10px; background:var(--purple); color:#fff; border-radius:50%; min-width:15px; height:15px; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+  .ext-dismiss { font-size:11px; color:var(--text3); background:none; border:none; font-family:var(--sans); cursor:pointer; padding:0; }
 
-  /* Chapter marker */
-  .ch-marker { display: none; font-size: 10px; color: var(--text3); letter-spacing: .1em; margin-bottom: 8px; }
-  .ch-marker.show { display: block; }
-  .ch-title { font-size: 26px; font-weight: 500; font-family: var(--serif); color: var(--text); line-height: 1.3; margin-bottom: 2.5rem; padding-bottom: 1.5rem; border-bottom: 0.5px solid var(--border); }
-  .ch-title.hidden { display: none; }
+  .ch-marker { display:none; font-size:10px; color:var(--text3); letter-spacing:.1em; margin-bottom:8px; }
+  .ch-marker.show { display:block; }
+  .ch-title { font-size:26px; font-weight:500; font-family:var(--serif); color:var(--text); line-height:1.3; margin-bottom:2.5rem; padding-bottom:1.5rem; border-bottom:0.5px solid var(--border); }
+  .ch-title.hidden { display:none; }
 
-  /* Story prose */
-  .story-prose { font-family: var(--serif); font-size: 18px; line-height: 2.1; color: var(--text); text-align: justify; position: relative; }
-  .story-prose p { margin-bottom: 1.5rem; }
-  .story-prose p:last-child { margin-bottom: 0; }
-  .story-hint { color: var(--text3); font-style: italic; font-size: 15px; font-family: var(--sans); line-height: 1.6; text-align: left; }
+  .story-prose { font-family:var(--serif); font-size:18px; line-height:2.1; color:var(--text); text-align:justify; }
+  .story-prose p { margin-bottom:1.5rem; }
+  .story-prose p:last-child { margin-bottom:0; }
+  .story-hint { color:var(--text3); font-style:italic; font-size:15px; font-family:var(--sans); line-height:1.6; text-align:left; }
 
-  /* Copy tooltip */
-  .copy-tooltip {
-    position: fixed; background: var(--bg3); border: 0.5px solid var(--border2);
-    border-radius: 6px; padding: 5px 10px; font-size: 12px; color: var(--text2);
-    cursor: pointer; z-index: 1000; display: none; font-family: var(--sans);
-    transition: opacity .15s;
-  }
-  .copy-tooltip:hover { color: var(--text); }
+  .pause-prompt { border-left:2px solid var(--purple); padding:10px 14px; margin:1.5rem 0; font-size:13px; color:var(--text2); font-style:italic; display:none; line-height:1.6; }
 
-  .pause-prompt { border-left: 2px solid var(--purple); padding: 10px 14px; margin: 1.5rem 0; font-size: 13px; color: var(--text2); font-style: italic; display: none; line-height: 1.6; }
+  .btn-p { padding:9px 22px; font-size:14px; border:0.5px solid var(--border2); border-radius:8px; background:var(--bg2); color:var(--text); cursor:pointer; transition:all .15s; font-family:var(--sans); white-space:nowrap; }
+  .btn-p:hover { background:var(--bg3); }
+  .btn-p:active { transform:scale(.98); }
+  .btn-p:disabled { opacity:.3; cursor:default; }
+  .btn-nav { padding:9px 14px; font-size:14px; border:0.5px solid var(--border); border-radius:8px; background:transparent; color:var(--text2); cursor:pointer; transition:all .15s; font-family:var(--sans); display:flex; align-items:center; gap:5px; white-space:nowrap; }
+  .btn-nav:hover { background:var(--bg2); color:var(--text); }
+  .btn-nav:disabled { opacity:.25; cursor:default; }
 
-  .btn-p { padding: 9px 24px; font-size: 14px; border: 0.5px solid var(--border2); border-radius: 8px; background: var(--bg2); color: var(--text); cursor: pointer; transition: all .15s; font-family: var(--sans); }
-  .btn-p:hover { background: var(--bg3); }
-  .btn-p:active { transform: scale(.98); }
-  .btn-p:disabled { opacity: .3; cursor: default; }
-  .btn-nav { padding: 9px 16px; font-size: 14px; border: 0.5px solid var(--border); border-radius: 8px; background: transparent; color: var(--text2); cursor: pointer; transition: all .15s; font-family: var(--sans); display: flex; align-items: center; gap: 6px; }
-  .btn-nav:hover { background: var(--bg2); color: var(--text); }
-  .btn-nav:disabled { opacity: .25; cursor: default; }
+  .dot-pulse { display:inline-flex; gap:4px; align-items:center; }
+  .dot-pulse span { width:5px; height:5px; border-radius:50%; background:var(--text3); animation:dp 1.2s infinite; }
+  .dot-pulse span:nth-child(2){animation-delay:.2s;}
+  .dot-pulse span:nth-child(3){animation-delay:.4s;}
+  @keyframes dp{0%,80%,100%{opacity:.3;transform:scale(.8)}40%{opacity:1;transform:scale(1)}}
 
-  .dot-pulse { display: inline-flex; gap: 4px; align-items: center; }
-  .dot-pulse span { width: 5px; height: 5px; border-radius: 50%; background: var(--text3); animation: dp 1.2s infinite; }
-  .dot-pulse span:nth-child(2) { animation-delay: .2s; }
-  .dot-pulse span:nth-child(3) { animation-delay: .4s; }
-  @keyframes dp { 0%,80%,100%{opacity:.3;transform:scale(.8)} 40%{opacity:1;transform:scale(1)} }
+  /* Share modal */
+  .modal-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:100; align-items:center; justify-content:center; }
+  .modal-overlay.show { display:flex; }
+  .modal { background:var(--bg); border:0.5px solid var(--border2); border-radius:12px; padding:1.5rem; max-width:480px; width:90%; }
+  .modal h3 { font-size:16px; font-weight:500; margin-bottom:0.75rem; }
+  .modal p { font-size:13px; color:var(--text2); margin-bottom:1rem; line-height:1.5; }
+  .modal-url { font-size:12px; font-family:var(--sans); background:var(--bg2); border:0.5px solid var(--border2); border-radius:6px; padding:8px 10px; width:100%; color:var(--text); margin-bottom:1rem; }
+  .modal-btns { display:flex; gap:8px; justify-content:flex-end; }
+  .modal-btn { padding:7px 16px; font-size:13px; border:0.5px solid var(--border2); border-radius:6px; background:var(--bg2); color:var(--text); cursor:pointer; font-family:var(--sans); transition:all .15s; }
+  .modal-btn:hover { background:var(--bg3); }
+  .modal-btn.primary { background:var(--purple); border-color:var(--purple); color:#fff; }
+  .modal-btn.primary:hover { opacity:0.9; }
 </style>
 </head>
 <body>
 
-<div class="copy-tooltip" id="copy-tooltip">Copy</div>
-
+<!-- Sidebar -->
 <div id="sidebar">
   <div class="sidebar-head">
     <div class="sidebar-title">The Pages</div>
-    <button class="btn-collapse" onclick="toggleSidebar()">‹</button>
+    <button class="btn-icon" onclick="toggleSidebar()" title="Hide sidebar" style="font-size:18px">‹</button>
   </div>
-  <div class="tree" id="tree"><div class="tree-empty">Your story will appear here.</div></div>
+  <div class="tree" id="tree">
+    <div class="tree-empty">Your story will appear here.</div>
+  </div>
   <div class="sidebar-bottom">
     <button class="btn-startover" onclick="confirmReset()">Start over</button>
+    <button class="btn-share" onclick="openShare()" id="btn-share-sidebar" style="display:none">Share</button>
+    <button class="btn-save"  onclick="savePDF()"   id="btn-save-sidebar"  style="display:none">Save PDF</button>
   </div>
 </div>
 
+<!-- Main -->
 <div id="main">
   <div class="topbar">
-    <button class="btn-toggle-sidebar" onclick="toggleSidebar()">☰</button>
+    <button class="btn-icon" onclick="toggleSidebar()" title="Toggle sidebar" style="font-size:20px">☰</button>
     <span class="topbar-title">The Pages</span>
   </div>
 
@@ -199,14 +227,25 @@
     <button class="btn-p"   id="btn-start"    onclick="startReading()">Begin reading →</button>
     <button class="btn-p"   id="btn-continue" onclick="continueReading()" style="display:none">Continue →</button>
     <button class="btn-nav" id="btn-prev"      onclick="prevPage()" style="display:none">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
-      Previous
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>Previous
     </button>
     <button class="btn-nav" id="btn-next"      onclick="nextPage()" style="display:none">
-      Next
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+      Next<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
     </button>
     <span class="page-counter" id="page-counter" style="display:none">p. <span id="page-num">1</span></span>
+  </div>
+</div>
+
+<!-- Share modal -->
+<div class="modal-overlay" id="share-modal">
+  <div class="modal">
+    <h3>Share your book</h3>
+    <p>Copy this link to share the current page of your book with someone.</p>
+    <input class="modal-url" id="share-url" readonly value="">
+    <div class="modal-btns">
+      <button class="modal-btn" onclick="closeShare()">Cancel</button>
+      <button class="modal-btn primary" onclick="copyShareLink()">Copy link</button>
+    </div>
   </div>
 </div>
 
@@ -223,32 +262,15 @@ let pages=[], currentPage=0, chapters=[], currentChapterIdx=0;
 let isLoading=false, isStarted=false;
 let timeOnPage=0, pauseCount=0, scrollBackCount=0;
 let currentMood="absent", prevMood="";
-let pageTimer=null, inactivityTimer=null, isUserActive=true, autoSaveTimer=null;
-let chapterSummaries=[];
+let lastScrollY=0, pageTimer=null, inactivityTimer=null, isUserActive=true, autoSaveTimer=null;
 const collapsedChapters={};
 let sidebarOpen=true;
 
-// --- Scroll depth tracking ---
-let maxScrollDepth=0;
-let lastScrollTop=0;
-
-// --- Revisit tracking ---
-let revisitedPage=null;
-
-function trackScrollDepth(){
-  const area=document.getElementById("reading-area");
-  if(!area) return;
-  const total=area.scrollHeight - area.clientHeight;
-  if(total<=0) return;
-  const depth=area.scrollTop/total;
-  if(depth>maxScrollDepth) maxScrollDepth=depth;
-  // Scroll-back detection
-  if(area.scrollTop < lastScrollTop - 50){ scrollBackCount++; updateMood(); }
-  lastScrollTop=area.scrollTop;
-  resetInactivity();
+function toggleSidebar(){
+  sidebarOpen=!sidebarOpen;
+  document.getElementById("sidebar").classList.toggle("collapsed",!sidebarOpen);
 }
 
-// --- Extension ---
 function sendToExt(msg,timeout=5000){
   return new Promise((resolve)=>{
     if(typeof chrome==="undefined"||!chrome.runtime){resolve(null);return;}
@@ -263,57 +285,35 @@ function sendToExt(msg,timeout=5000){
   });
 }
 
-// --- Sidebar ---
-function toggleSidebar(){
-  sidebarOpen=!sidebarOpen;
-  document.getElementById("sidebar").classList.toggle("collapsed",!sidebarOpen);
-}
-
 // --- Tree ---
 function toggleChapter(ci){
   collapsedChapters[ci]=!collapsedChapters[ci];
   renderTree();
 }
-
 function renderTree(){
   const tree=document.getElementById("tree");
   if(!pages.length){tree.innerHTML='<div class="tree-empty">Your story will appear here.</div>';return;}
   const groups={};
-  pages.forEach((p,i)=>{
-    if(!groups[p.chapterIdx])groups[p.chapterIdx]=[];
-    groups[p.chapterIdx].push({p,i});
-  });
+  pages.forEach((p,i)=>{if(!groups[p.chapterIdx])groups[p.chapterIdx]=[];groups[p.chapterIdx].push({p,i});});
   let html="";
   Object.entries(groups).forEach(([ci,entries])=>{
     const chIdx=parseInt(ci);
-    const ch=chapters[chIdx];
-    const title=ch?.title||("Chapter "+(chIdx+1));
+    const title=(chapters[chIdx]?.title)||("Chapter "+(chIdx+1));
     const isActiveCh=entries.some(e=>e.i===currentPage);
     const collapsed=collapsedChapters[chIdx];
-    html+=`<div class="tree-chapter ${isActiveCh?"active-ch":""}" onclick="toggleChapter(${chIdx})">
-      <span class="tree-arrow">${collapsed?"▶":"▼"}</span>
-      <span class="tree-chapter-title">${title}</span>
-    </div>`;
-    if(!collapsed){
-      entries.forEach(({p,i})=>{
-        html+=`<div class="tree-item ${i===currentPage?"active":""}" onclick="jumpToPage(${i})">
-          <span class="tree-dot ${i===currentPage?"active":""}"></span>
-          <span>p. ${i+1}</span>
-        </div>`;
-      });
-    }
+    html+=`<div class="tree-chapter ${isActiveCh?"active-ch":""}" onclick="toggleChapter(${chIdx})"><span class="tree-arrow">${collapsed?"▶":"▼"}</span><span class="tree-chapter-title">${title}</span></div>`;
+    if(!collapsed) entries.forEach(({i})=>{
+      const active=i===currentPage;
+      html+=`<div class="tree-item ${active?"active":""}" onclick="jumpToPage(${i})"><span class="tree-dot ${active?"active":""}"></span><span>p. ${i+1}</span></div>`;
+    });
   });
   if(isLoading) html+=`<div class="tree-item" style="opacity:.4;font-style:italic;"><span class="tree-dot"></span><span>writing...</span></div>`;
   tree.innerHTML=html;
 }
-
 function jumpToPage(idx){
   if(idx<0||idx>=pages.length)return;
-  revisitedPage=idx;
-  currentPage=idx;
-  currentChapterIdx=pages[idx].chapterIdx;
-  renderPage(idx);
-  saveState();
+  currentPage=idx;currentChapterIdx=pages[idx].chapterIdx;
+  renderPage(idx);saveState();
 }
 
 // --- Init ---
@@ -324,23 +324,18 @@ async function init(){
   const stateRes=await sendToExt({action:"loadState"});
   const saved=stateRes?.state;
 
-  if(saved?.chapters?.length){ chapters=saved.chapters; }
+  if(saved?.chapters?.length){chapters=saved.chapters;}
   else{
     setLoading("Building your personal chapters...");
     const chapRes=await sendToExt({action:"initChapters"},15000);
     chapters=chapRes?.chapters||getDefaultChapters();
   }
   if(saved?.pages?.length){
-    pages=saved.pages;
-    currentPage=saved.currentPage||0;
-    currentChapterIdx=saved.currentChapterIdx||0;
-    currentMood=saved.mood||"curious";
-    chapterSummaries=saved.chapterSummaries||[];
+    pages=saved.pages;currentPage=saved.currentPage||0;
+    currentChapterIdx=saved.currentChapterIdx||0;currentMood=saved.mood||"curious";
   }
-
-  if(!hasExt&&!sessionStorage.getItem("extBannerDismissed")){
+  if(!hasExt&&!sessionStorage.getItem("extBannerDismissed"))
     document.getElementById("ext-banner").classList.add("show");
-  }
 
   document.getElementById("loading-screen").style.display="none";
   document.getElementById("book-content").style.display="block";
@@ -349,18 +344,14 @@ async function init(){
     renderPage(currentPage);
     document.getElementById("btn-start").style.display="none";
     document.getElementById("btn-continue").style.display="inline-block";
-    updateNavButtons();
-    renderTree();
+    updateNavButtons();renderTree();showActionButtons();
   } else {
     document.getElementById("btn-start").style.display="inline-block";
     renderTree();
   }
-
-  setupCopyTooltip();
 }
 
 function setLoading(t){document.getElementById("loading-text").textContent=t;}
-
 function getDefaultChapters(){
   return [
     {title:"The Self You Cannot Step Away From",theme:"presence and the inescapable now"},
@@ -371,32 +362,12 @@ function getDefaultChapters(){
   ];
 }
 
-// --- Copy tooltip on text selection ---
-function setupCopyTooltip(){
-  const tooltip=document.getElementById("copy-tooltip");
-  document.addEventListener("mouseup",()=>{
-    const sel=window.getSelection();
-    if(!sel||sel.isCollapsed||sel.toString().trim().length<5){
-      tooltip.style.display="none"; return;
-    }
-    const range=sel.getRangeAt(0);
-    const rect=range.getBoundingClientRect();
-    tooltip.style.display="block";
-    tooltip.style.left=(rect.left+rect.width/2-30)+"px";
-    tooltip.style.top=(rect.top-36+window.scrollY)+"px";
-    tooltip.onclick=()=>{
-      navigator.clipboard.writeText(sel.toString()).then(()=>{
-        tooltip.textContent="Copied!";
-        setTimeout(()=>{tooltip.style.display="none";tooltip.textContent="Copy";},1500);
-      });
-    };
-  });
-  document.addEventListener("mousedown",(e)=>{
-    if(e.target!==tooltip) tooltip.style.display="none";
-  });
+function showActionButtons(){
+  document.getElementById("btn-share-sidebar").style.display="inline-block";
+  document.getElementById("btn-save-sidebar").style.display="inline-block";
 }
 
-// --- Render page ---
+// --- Render ---
 function renderPage(idx){
   if(!pages.length)return;
   const p=pages[idx];
@@ -415,184 +386,93 @@ function renderPage(idx){
   document.getElementById("story-prose").innerHTML=html;
   document.getElementById("page-num").textContent=idx+1;
   document.getElementById("page-counter").style.display="inline-block";
-  maxScrollDepth=0; lastScrollTop=0;
-  updateNavButtons();
-  renderTree();
+  updateNavButtons();renderTree();
   document.getElementById("reading-area").scrollTo({top:0,behavior:"smooth"});
 }
-
 function updateNavButtons(){
   document.getElementById("btn-prev").style.display=currentPage>0?"flex":"none";
   document.getElementById("btn-next").style.display="flex";
   document.getElementById("btn-next").disabled=isLoading;
 }
 
-// --- Navigation ---
+// --- Nav ---
 function prevPage(){
   if(currentPage<=0||isLoading)return;
-  revisitedPage=currentPage-1;
-  currentPage--;
-  currentChapterIdx=pages[currentPage].chapterIdx;
-  renderPage(currentPage);
-  saveState();
+  currentPage--;currentChapterIdx=pages[currentPage].chapterIdx;
+  renderPage(currentPage);saveState();
 }
-
 async function nextPage(){
   if(isLoading)return;
   if(currentPage<pages.length-1){
-    currentPage++;
-    currentChapterIdx=pages[currentPage].chapterIdx;
-    revisitedPage=null;
-    renderPage(currentPage);
-    saveState();
-    return;
+    currentPage++;currentChapterIdx=pages[currentPage].chapterIdx;
+    renderPage(currentPage);saveState();return;
   }
   await generateNextPage();
 }
-
 function shouldChangeChapter(){
-  const inChapter=pages.filter(p=>p.chapterIdx===currentChapterIdx).length;
-  const threshold=currentMood==="deep"?7:currentMood==="restless"?4:5;
-  return inChapter>=threshold;
+  const n=pages.filter(p=>p.chapterIdx===currentChapterIdx).length;
+  return n>=(currentMood==="deep"?7:currentMood==="restless"?4:5);
 }
-
-// --- Summarize completed chapter ---
-async function maybeSummarizeChapter(chIdx){
-  if(chapterSummaries[chIdx]) return;
-  const chapterPages=pages.filter(p=>p.chapterIdx===chIdx).map(p=>p.text);
-  if(chapterPages.length<2) return;
-  const res=await sendToExt({action:"summarizeChapter",passages:chapterPages},15000);
-  if(res?.summary){
-    chapterSummaries[chIdx]=res.summary;
-    await saveState();
-  }
-}
-
-// --- Generate ---
 async function generateNextPage(){
-  isLoading=true;
-  updateNavButtons();
-  renderTree();
+  isLoading=true;updateNavButtons();renderTree();
   document.getElementById("ch-marker").classList.remove("show");
   document.getElementById("ch-title").classList.add("hidden");
   document.getElementById("story-prose").innerHTML=
-    `<span class="story-hint" style="display:flex;align-items:center;gap:10px">
-      <span class="dot-pulse"><span></span><span></span><span></span></span>Writing the next page...
-    </span>`;
-
+    `<span class="story-hint" style="display:flex;align-items:center;gap:10px"><span class="dot-pulse"><span></span><span></span><span></span></span>Writing the next page...</span>`;
   const chapterChanging=shouldChangeChapter();
-  if(chapterChanging){
-    await maybeSummarizeChapter(currentChapterIdx);
-    currentChapterIdx++;
-  }
-
-  const history=pages.slice(-2).map(p=>p.text);
-
-  const res=await sendToExt({
-    action:"generate",
-    state:{
-      chapterIdx:currentChapterIdx,
-      mood:currentMood,
-      timeOnPage, pauseCount, scrollBackCount,
-      scrollDepth: maxScrollDepth,
-      revisitedPage,
-      history,
-      chapterSummaries,
-      isChapterStart:chapterChanging,
-    }
-  },20000);
-
-  // Reset per-page signals
-  revisitedPage=null; maxScrollDepth=0;
-
+  if(chapterChanging)currentChapterIdx++;
+  const history=pages.slice(-3).map(p=>p.text);
+  const res=await sendToExt({action:"generate",state:{chapterIdx:currentChapterIdx,mood:currentMood,timeOnPage,pauseCount,scrollBackCount,history,isChapterStart:chapterChanging}},20000);
   if(res?.text&&res.text.length>10){
-    const newPage={
-      text:res.text,
-      chapterIdx:currentChapterIdx,
-      isChapterStart:chapterChanging,
-      chapterTitle:chapterChanging?(chapters[currentChapterIdx]?.title||""):"",
-    };
-    pages.push(newPage);
-    currentPage=pages.length-1;
-    renderPage(currentPage);
-    saveState();
+    pages.push({text:res.text,chapterIdx:currentChapterIdx,isChapterStart:chapterChanging,chapterTitle:chapterChanging?(chapters[currentChapterIdx]?.title||""):"",});
+    currentPage=pages.length-1;renderPage(currentPage);saveState();showActionButtons();
   } else {
-    document.getElementById("story-prose").innerHTML=
-      `<p class="story-hint">Could not generate page. Make sure the Adaptive Book extension is installed and active.</p>`;
+    document.getElementById("story-prose").innerHTML=`<p class="story-hint">Could not generate page. Make sure the Adaptive Book extension is installed and active.</p>`;
     renderTree();
   }
-  isLoading=false;
-  updateNavButtons();
+  isLoading=false;updateNavButtons();
 }
 
-// --- Start / Continue ---
-function startReading(){
-  isStarted=true;
-  document.getElementById("btn-start").style.display="none";
-  beginTracking();
-  generateNextPage();
-}
-function continueReading(){
-  isStarted=true;
-  document.getElementById("btn-continue").style.display="none";
-  beginTracking();
-  renderPage(currentPage);
-}
+// --- Start ---
+function startReading(){isStarted=true;document.getElementById("btn-start").style.display="none";beginTracking();generateNextPage();}
+function continueReading(){isStarted=true;document.getElementById("btn-continue").style.display="none";beginTracking();renderPage(currentPage);}
 function beginTracking(){
   pageTimer=setInterval(()=>{timeOnPage++;updateMood();},1000);
-  document.getElementById("reading-area").addEventListener("scroll",trackScrollDepth,{passive:true});
+  document.getElementById("reading-area").addEventListener("scroll",onScroll,{passive:true});
   ["mousemove","keydown","click","touchstart"].forEach(ev=>window.addEventListener(ev,onActivity,{passive:true}));
-  resetInactivity();
-  autoSaveTimer=setInterval(saveState,30000);
+  resetInactivity();autoSaveTimer=setInterval(saveState,30000);
 }
 
 // --- Mood ---
 function calcMood(){
-  const pr=pauseCount/(Math.max(timeOnPage,1)/60);
-  const sr=scrollBackCount/(Math.max(timeOnPage,1)/60);
-  if(!isUserActive)return"absent";
-  if(sr>1.5)return"restless";
-  if(pr>2&&sr<1)return"deep";
-  if(timeOnPage>30&&pr<2)return"deep";
-  if(pr>0.5)return"curious";
-  return"curious";
+  const pr=pauseCount/(Math.max(timeOnPage,1)/60),sr=scrollBackCount/(Math.max(timeOnPage,1)/60);
+  if(!isUserActive)return"absent";if(sr>1.5)return"restless";
+  if(pr>2&&sr<1)return"deep";if(timeOnPage>30&&pr<2)return"deep";
+  if(pr>0.5)return"curious";return"curious";
 }
-function updateMood(){
-  const mood=calcMood();
-  if(mood!==prevMood){prevMood=mood;currentMood=mood;}
-}
+function updateMood(){const mood=calcMood();if(mood!==prevMood){prevMood=mood;currentMood=mood;}}
 function onPause(){
   pauseCount++;updateMood();
   const p=document.getElementById("pause-prompt");
   p.textContent=PAUSE_PROMPTS[Math.min(pauseCount-1,PAUSE_PROMPTS.length-1)];
-  p.style.display="block";
-  setTimeout(()=>{p.style.display="none";},5000);
-  saveState();
+  p.style.display="block";setTimeout(()=>{p.style.display="none";},5000);saveState();
 }
-function resetInactivity(){
-  clearTimeout(inactivityTimer);isUserActive=true;
-  inactivityTimer=setTimeout(()=>{isUserActive=false;updateMood();onPause();},8000);
-}
+function resetInactivity(){clearTimeout(inactivityTimer);isUserActive=true;inactivityTimer=setTimeout(()=>{isUserActive=false;updateMood();onPause();},8000);}
+function onScroll(){if(!isStarted)return;const y=document.getElementById("reading-area").scrollTop;if(y<lastScrollY-50){scrollBackCount++;updateMood();}lastScrollY=y;resetInactivity();}
 function onActivity(){if(isStarted)resetInactivity();}
 
 // --- Save ---
-async function saveState(){
-  await sendToExt({action:"saveState",state:{pages,currentPage,currentChapterIdx,chapters,mood:currentMood,timeOnPage,pauseCount,scrollBackCount,chapterSummaries}});
-}
+async function saveState(){await sendToExt({action:"saveState",state:{pages,currentPage,currentChapterIdx,chapters,mood:currentMood,timeOnPage,pauseCount,scrollBackCount}});}
 document.addEventListener("visibilitychange",()=>{if(document.hidden&&isStarted)saveState();});
 window.addEventListener("beforeunload",()=>{if(isStarted)saveState();});
 
 // --- Reset ---
-function confirmReset(){
-  if(!confirm("Start over? This will erase your entire book and all chapters."))return;
-  resetAll();
-}
+function confirmReset(){if(!confirm("Start over? This will erase your entire book and all chapters."))return;resetAll();}
 function resetAll(){
-  isStarted=false;currentPage=0;currentChapterIdx=0;pages=[];chapters=[];chapterSummaries=[];
-  pauseCount=0;scrollBackCount=0;timeOnPage=0;maxScrollDepth=0;revisitedPage=null;
-  currentMood="absent";prevMood="";
+  isStarted=false;currentPage=0;currentChapterIdx=0;pages=[];chapters=[];
+  pauseCount=0;scrollBackCount=0;timeOnPage=0;currentMood="absent";prevMood="";
   clearInterval(pageTimer);clearInterval(autoSaveTimer);clearTimeout(inactivityTimer);
-  document.getElementById("reading-area").removeEventListener("scroll",trackScrollDepth);
+  document.getElementById("reading-area").removeEventListener("scroll",onScroll);
   ["mousemove","keydown","click","touchstart"].forEach(ev=>window.removeEventListener(ev,onActivity));
   document.getElementById("btn-start").style.display="inline-block";
   document.getElementById("btn-continue").style.display="none";
@@ -602,15 +482,72 @@ function resetAll(){
   document.getElementById("page-counter").style.display="none";
   document.getElementById("ch-marker").classList.remove("show");
   document.getElementById("ch-title").classList.add("hidden");
+  document.getElementById("btn-share-sidebar").style.display="none";
+  document.getElementById("btn-save-sidebar").style.display="none";
   document.getElementById("story-prose").innerHTML=`<p class="story-hint">The Pages is learning who you are. Begin when you're ready.</p>`;
   renderTree();
-  sendToExt({action:"saveState",state:{pages:[],currentPage:0,currentChapterIdx:0,chapters:[],chapterSummaries:[],mood:"absent"}});
+  sendToExt({action:"saveState",state:{pages:[],currentPage:0,currentChapterIdx:0,chapters:[],mood:"absent"}});
 }
 
-function dismissBanner(){
-  document.getElementById("ext-banner").classList.remove("show");
-  sessionStorage.setItem("extBannerDismissed","1");
+// --- Share ---
+function openShare(){
+  const text=encodeURIComponent(document.getElementById("story-prose").innerText.substring(0,300)+"...");
+  const url=window.location.href;
+  document.getElementById("share-url").value=url;
+  document.getElementById("share-modal").classList.add("show");
 }
+function closeShare(){document.getElementById("share-modal").classList.remove("show");}
+function copyShareLink(){
+  const input=document.getElementById("share-url");
+  input.select();navigator.clipboard.writeText(input.value).catch(()=>document.execCommand("copy"));
+  const btn=document.querySelector(".modal-btn.primary");
+  btn.textContent="Copied!";setTimeout(()=>{btn.textContent="Copy link";closeShare();},1500);
+}
+
+// --- Save PDF ---
+function savePDF(){
+  if(!pages.length){alert("No pages to save yet.");return;}
+  const title="The Pages";
+  const chapterMap={};
+  pages.forEach(p=>{if(!chapterMap[p.chapterIdx])chapterMap[p.chapterIdx]=[];chapterMap[p.chapterIdx].push(p);});
+
+  let html=`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>${title}</title><style>
+    body{font-family:Georgia,serif;font-size:14pt;line-height:1.9;color:#1a1a18;max-width:680px;margin:0 auto;padding:3rem 2rem;}
+    h1{font-size:28pt;font-weight:500;text-align:center;margin-bottom:0.5rem;}
+    .subtitle{text-align:center;color:#888;font-size:11pt;margin-bottom:4rem;}
+    .ch-label{font-size:9pt;letter-spacing:.1em;color:#888;margin-bottom:6px;}
+    .ch-title{font-size:20pt;font-weight:500;margin-bottom:2rem;padding-bottom:1rem;border-bottom:1px solid #ddd;}
+    p{margin-bottom:1.3rem;text-align:justify;}
+    .page-break{page-break-after:always;margin-bottom:3rem;}
+    .page-num{text-align:center;font-size:10pt;color:#aaa;margin-top:2rem;}
+  </style></head><body>
+  <h1>${title}</h1>
+  <div class="subtitle">A personal book · ${new Date().toLocaleDateString("en-US",{year:"numeric",month:"long",day:"numeric"})}</div>`;
+
+  Object.entries(chapterMap).forEach(([ci,cPages])=>{
+    cPages.forEach((p,pi)=>{
+      if(p.isChapterStart&&p.chapterTitle){
+        html+=`<div class="ch-label">CHAPTER ${parseInt(ci)+1}</div><div class="ch-title">${p.chapterTitle}</div>`;
+      }
+      const paragraphs=p.text.split("\n").filter(s=>s.trim()).map(s=>`<p>${s.trim()}</p>`).join("");
+      html+=paragraphs;
+      const globalPage=pages.indexOf(p);
+      html+=`<div class="page-num">— ${globalPage+1} —</div>`;
+      if(pi<cPages.length-1||parseInt(ci)<Object.keys(chapterMap).length-1)
+        html+=`<div class="page-break"></div>`;
+    });
+  });
+
+  html+=`</body></html>`;
+  const blob=new Blob([html],{type:"text/html"});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement("a");
+  a.href=url;a.download="the-pages.html";a.click();
+  URL.revokeObjectURL(url);
+  setTimeout(()=>alert("File saved as 'the-pages.html'. Open it in a browser and print → Save as PDF for the best result."),100);
+}
+
+function dismissBanner(){document.getElementById("ext-banner").classList.remove("show");sessionStorage.setItem("extBannerDismissed","1");}
 
 init();
 </script>
