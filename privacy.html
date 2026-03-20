@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Privacy Policy — Adaptive Book</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #ffffff; --bg2: #f5f4f0;
+    --text: #1a1a18; --text2: #5a5955; --text3: #9a9894;
+    --border: rgba(0,0,0,0.1);
+    --serif: Georgia, 'Times New Roman', serif;
+    --sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #1a1918; --bg2: #242320; --text: #e8e6e0; --text2: #9a9890; --text3: #5a5855; --border: rgba(255,255,255,0.1); }
+  }
+  body { background: var(--bg); color: var(--text); font-family: var(--sans); line-height: 1.7; }
+  .wrap { max-width: 680px; margin: 0 auto; padding: 3rem 1.5rem 5rem; }
+  .back { font-size: 13px; color: var(--text3); text-decoration: none; display: inline-block; margin-bottom: 2rem; }
+  .back:hover { color: var(--text2); }
+  h1 { font-size: 28px; font-weight: 500; font-family: var(--serif); margin-bottom: 0.5rem; }
+  .date { font-size: 13px; color: var(--text3); margin-bottom: 2.5rem; }
+  h2 { font-size: 16px; font-weight: 500; margin: 2rem 0 0.75rem; }
+  p { font-size: 15px; color: var(--text2); margin-bottom: 1rem; }
+  ul { margin: 0 0 1rem 1.25rem; }
+  li { font-size: 15px; color: var(--text2); margin-bottom: 0.4rem; }
+  .highlight { background: var(--bg2); border-left: 3px solid #534AB7; border-radius: 0; padding: 14px 18px; margin: 1.5rem 0; font-size: 14px; color: var(--text2); line-height: 1.6; }
+  a { color: #534AB7; }
+  .contact { margin-top: 3rem; padding-top: 2rem; border-top: 0.5px solid var(--border); font-size: 14px; color: var(--text3); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <a class="back" href="/">← Back to Adaptive Book</a>
+
+  <h1>Privacy Policy</h1>
+  <div class="date">Last updated: March 20, 2026</div>
+
+  <div class="highlight">
+    Your browsing data never leaves your device without your explicit action. The Adaptive Book extension only sends data when you press "Sync" — and only to your personal book session. No third parties receive your data.
+  </div>
+
+  <h2>What data the extension collects</h2>
+  <p>When you choose to sync, the Adaptive Book Chrome Extension collects:</p>
+  <ul>
+    <li>URLs from your browser history (last 7 days)</li>
+    <li>Visit counts per URL</li>
+    <li>Search terms extracted from Google/Bing search URLs</li>
+    <li>The time of day you tend to browse</li>
+  </ul>
+
+  <h2>What we do NOT collect</h2>
+  <ul>
+    <li>Passwords, form data, or payment information</li>
+    <li>Content of web pages you visit</li>
+    <li>Your identity or personal information beyond what Google OAuth provides (name, email)</li>
+    <li>Location data</li>
+    <li>Any data from private/incognito browsing</li>
+  </ul>
+
+  <h2>How your data is used</h2>
+  <p>Your browsing profile is used solely to personalize the narrative of your adaptive book. The system categorizes your browsing (e.g. news, social media, technology) and uses this as context when generating your unique reading experience.</p>
+  <p>Your data is stored securely in our database and is associated only with your account. It is never sold, shared, or used for advertising.</p>
+
+  <h2>Data retention</h2>
+  <p>Your browsing profile is stored until you delete your account or explicitly request deletion. You can request deletion at any time by contacting us.</p>
+
+  <h2>Third-party services</h2>
+  <ul>
+    <li><strong>Google OAuth</strong> — used for sign-in only. We receive your name and email address.</li>
+    <li><strong>Groq API</strong> — used to generate book passages. Only your anonymized behavioral profile and chapter context are sent — never raw URLs or personal identifiers.</li>
+  </ul>
+
+  <h2>Your rights</h2>
+  <p>You have the right to access, correct, or delete your data at any time. To exercise these rights, contact us at the address below.</p>
+
+  <h2>Changes to this policy</h2>
+  <p>We may update this policy occasionally. Continued use of the extension after changes constitutes acceptance of the new policy.</p>
+
+  <div class="contact">
+    Questions? Contact us at <a href="mailto:privacy@adaptivebook.app">privacy@adaptivebook.app</a>
+  </div>
+</div>
+</body>
+</html>
