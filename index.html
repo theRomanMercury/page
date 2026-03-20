@@ -205,7 +205,9 @@
       <div class="ch-marker" id="ch-marker"></div>
       <div class="ch-title hidden" id="ch-title"></div>
       <div class="story-prose" id="story-prose">
-        <p class="story-hint">Every page you have ever opened has left a trace. This book follows that trace — and turns it into something only you could read.</p>
+        <p class="story-hint">Every page you have ever opened has left a trace. This book follows that trace — and turns it into something only you could read.
+
+What you read, where you wander, what you search for in quiet moments — none of it goes anywhere. It stays exactly where it began: on your device, belonging only to you.</p>
       </div>
       <div class="pause-prompt" id="pause-prompt"></div>
     </div>
@@ -377,6 +379,9 @@ function prevPage(){
 }
 async function nextPage(){
   if(isLoading)return;
+  // Spam protection: minimum 3s between new page generations
+  const now = Date.now();
+  if(currentPage >= pages.length-1 && now - lastGenerateTime < 3000) return;
   if(currentPage<pages.length-1){
     currentPage++;currentChapterIdx=pages[currentPage].chapterIdx;
     renderPage(currentPage);saveState();return;
@@ -397,6 +402,7 @@ async function generateNextPage(){
   if(chapterChanging) currentChapterIdx++;
   const isFirst = pages.length === 0;
   const history=pages.slice(-3).map(p=>p.text);
+  lastGenerateTime = Date.now();
   const res=await sendToExt({action:"generate",state:{chapterIdx:currentChapterIdx,mood:currentMood,timeOnPage,pauseCount,scrollBackCount,history,isChapterStart:chapterChanging||isFirst}},20000);
 
   // Retry once if failed
@@ -417,7 +423,13 @@ async function generateNextPage(){
 }
 
 // --- Start ---
-function startReading(){isStarted=true;document.getElementById("btn-start").style.display="none";beginTracking();generateNextPage();}
+let lastGenerateTime = 0;
+function startReading(){
+  isStarted=true;
+  document.getElementById("btn-start").style.display="none";
+  beginTracking();
+  generateNextPage();
+}
 function continueReading(){isStarted=true;document.getElementById("btn-continue").style.display="none";beginTracking();renderPage(currentPage);}
 function beginTracking(){
   pageTimer=setInterval(()=>{timeOnPage++;updateMood();},1000);
@@ -466,7 +478,9 @@ function resetAll(){
   document.getElementById("ch-marker").classList.remove("show");
   document.getElementById("ch-title").classList.add("hidden");
   // save button stays visible
-  document.getElementById("story-prose").innerHTML=`<p class="story-hint">Every page you have ever opened has left a trace. This book follows that trace — and turns it into something only you could read.</p>`;
+  document.getElementById("story-prose").innerHTML=`<p class="story-hint">Every page you have ever opened has left a trace. This book follows that trace — and turns it into something only you could read.
+
+What you read, where you wander, what you search for in quiet moments — none of it goes anywhere. It stays exactly where it began: on your device, belonging only to you.</p>`;
   renderTree();
   // Fully clear book state in IndexedDB so new chapters and text are generated fresh
   sendToExt({action:"fullReset"});
