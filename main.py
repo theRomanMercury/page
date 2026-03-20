@@ -1,8 +1,7 @@
 import os
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from typing import Optional
 from groq import Groq
@@ -22,6 +21,9 @@ app.add_middleware(
 )
 
 client = Groq(api_key=os.environ.get("GROQ_API_KEY"))
+
+# Bellekte profil saklama (production'da Redis/DB kullanılmalı)
+user_profiles: dict = {}
 
 CHAPTERS = {
     "en": [
@@ -60,6 +62,15 @@ MOOD_INSTRUCTIONS = {
 }
 
 
+class WebProfile(BaseModel):
+    urls: Optional[list] = []
+    categories: Optional[dict] = {}
+    searchTerms: Optional[list] = []
+    timeOfDay: Optional[str] = "evening"
+    totalSites: Optional[int] = 0
+    collectedAt: Optional[str] = ""
+
+
 class GenerateRequest(BaseModel):
     lang: str = "en"
     chapter_idx: int = 0
@@ -68,9 +79,67 @@ class GenerateRequest(BaseModel):
     pause_count: int = 0
     scroll_back_count: int = 0
     story_history: Optional[list[str]] = []
+    session_id: Optional[str] = "default"
 
 
-def build_system_prompt(req: GenerateRequest) -> str:
+@app.post("/profile")
+async def receive_profile(profile: WebProfile, request: Request):
+    """Extension'dan gelen web profilini sakla"""
+    client_ip = request.client.host
+    user_profiles[client_ip] = profile.dict()
+    return JSONResponse({"status": "ok", "totalSites": profile.totalSites})
+
+
+@app.get("/profile/status")
+async def profile_status(request: Request):
+    """Profilin alınıp alınmadığını kontrol et"""
+    client_ip = request.client.host
+    profile = user_profiles.get(client_ip)
+    return JSONResponse({
+        "hasProfile": profile is not None,
+        "totalSites": profile.get("totalSites", 0) if profile else 0,
+    })
+
+
+def build_web_profile_context(profile: dict, lang: str) -> str:
+    if not profile:
+        return ""
+
+    cats = profile.get("categories", {})
+    top_cats = sorted(cats.items(), key=lambda x: x[1], reverse=True)[:3]
+    cat_str = ", ".join(f"{c} ({n})" for c, n in top_cats if n > 0)
+    terms = profile.get("searchTerms", [])
+    terms_str = ", ".join(f'"{t}"' for t in terms[:5]) if terms else ""
+    time_of_day = profile.get("timeOfDay", "")
+    total = profile.get("totalSites", 0)
+
+    if lang == "tr":
+        ctx = f"\nOkuyucunun web profili (tarayıcı geçmişinden):\n"
+        if cat_str:
+            ctx += f"- En çok ziyaret edilen kategoriler: {cat_str}\n"
+        if terms_str:
+            ctx += f"- Arama terimleri: {terms_str}\n"
+        if time_of_day:
+            ctx += f"- Yoğun tarama saati: {time_of_day}\n"
+        if total:
+            ctx += f"- Toplam analiz edilen site: {total}\n"
+        ctx += "Bu bilgileri kitabın metaforlarına ve temalarına yansıt — ham veri olarak değil, psikolojik gerçekliğe dönüştürerek.\n"
+    else:
+        ctx = f"\nReader's web profile (from browser history):\n"
+        if cat_str:
+            ctx += f"- Most visited categories: {cat_str}\n"
+        if terms_str:
+            ctx += f"- Search terms: {terms_str}\n"
+        if time_of_day:
+            ctx += f"- Peak browsing time: {time_of_day}\n"
+        if total:
+            ctx += f"- Total sites analyzed: {total}\n"
+        ctx += "Weave this into the book's metaphors and themes — not as raw data, but transformed into psychological reality.\n"
+
+    return ctx
+
+
+def build_system_prompt(req: GenerateRequest, web_profile: dict = None) -> str:
     lang = req.lang if req.lang in ("en", "tr") else "en"
     chapters = CHAPTERS[lang]
     idx = max(0, min(req.chapter_idx, len(chapters) - 1))
@@ -92,11 +161,14 @@ def build_system_prompt(req: GenerateRequest) -> str:
         else ("Bu ilk bölüm." if lang == "tr" else "This is the opening passage.")
     )
 
+    web_ctx = build_web_profile_context(web_profile, lang)
+
     if lang == "tr":
         return (
             f"Sen felsefi bir öz-keşif kitabı yazıyorsun. "
-            f"Kitap, okuyucunun gerçek zamanlı okuma davranışına göre şekilleniyor.\n\n"
-            f"Okuyucunun davranışsal profili: {behavior_summary}\n"
+            f"Kitap iki kaynaktan şekilleniyor: okuyucunun gerçek zamanlı okuma davranışı ve web geçmişi.\n\n"
+            f"Okuma davranışı: {behavior_summary}\n"
+            f"{web_ctx}\n"
             f"Bölüm: \"{ch['title']}\" ({ch['theme']})\n"
             f"Önceki bölümler: {prev_chapters}\n\n"
             f"Anlatı talimatı: {mood_instruction}\n\n"
@@ -106,8 +178,9 @@ def build_system_prompt(req: GenerateRequest) -> str:
 
     return (
         f"You are writing a literary, philosophical book about self-discovery. "
-        f"The book adapts in real time to how the reader is reading.\n\n"
-        f"Reader's behavioral profile: {behavior_summary}\n"
+        f"The book is shaped by two sources: the reader's real-time reading behavior and their web history.\n\n"
+        f"Reading behavior: {behavior_summary}\n"
+        f"{web_ctx}\n"
         f"Chapter: \"{ch['title']}\" ({ch['theme']})\n"
         f"Previous chapters: {prev_chapters}\n\n"
         f"Narrative instruction: {mood_instruction}\n\n"
@@ -118,9 +191,12 @@ def build_system_prompt(req: GenerateRequest) -> str:
 
 
 @app.post("/generate")
-async def generate(req: GenerateRequest):
+async def generate(req: GenerateRequest, request: Request):
     try:
-        system_prompt = build_system_prompt(req)
+        client_ip = request.client.host
+        web_profile = user_profiles.get(client_ip)
+
+        system_prompt = build_system_prompt(req, web_profile)
         user_msg = "Bu bölümü yaz." if req.lang == "tr" else "Write this chapter passage."
 
         completion = client.chat.completions.create(
@@ -134,7 +210,8 @@ async def generate(req: GenerateRequest):
         )
 
         text = completion.choices[0].message.content or "..."
-        return JSONResponse({"text": text})
+        has_web_profile = web_profile is not None
+        return JSONResponse({"text": text, "hasWebProfile": has_web_profile})
 
     except Exception as e:
         return JSONResponse({"error": str(e)}, status_code=500)
