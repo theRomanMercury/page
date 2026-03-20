@@ -1,4 +1,5 @@
 import os, httpx
+from datetime import datetime, timezone, timedelta
 from fastapi import FastAPI, Request, HTTPException
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from fastapi.middleware.cors import CORSMiddleware
@@ -212,7 +213,6 @@ async def profile_status(request: Request):
         if not p:
             return JSONResponse({"hasProfile": False, "fresh": False})
         # Check if profile was updated within last 24 hours
-        from datetime import datetime, timezone, timedelta
         updated_at = p.get("updated_at") or p.get("collectedAt", "")
         fresh = False
         if updated_at:
