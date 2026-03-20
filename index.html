@@ -38,37 +38,35 @@
   }
   .sidebar-title {
     font-family: var(--serif);
-    font-size: 16px; font-weight: 500;
+    font-size: 17px; font-weight: 500;
     color: var(--text);
     padding: 0 1.25rem 1.25rem;
     border-bottom: 0.5px solid var(--border);
     letter-spacing: .01em;
   }
-  .sidebar-title span {
-    display: block; font-size: 10px; font-family: var(--sans);
-    color: var(--text3); letter-spacing: .06em; margin-bottom: 4px;
-    font-weight: 400;
-  }
   .tree { padding: 0.75rem 0; flex:1; }
+  .tree-chapter {
+    display:flex; align-items:flex-start; gap:6px;
+    padding: 10px 1.25rem 6px;
+    cursor:pointer; transition:all .15s;
+    border-top: 0.5px solid var(--border);
+  }
+  .tree-chapter:first-child { border-top:none; }
+  .tree-chapter:hover { background:var(--bg3); }
+  .tree-chapter-active .tree-chapter-title { color:var(--text); }
+  .tree-arrow { font-size:9px; color:var(--text3); margin-top:2px; flex-shrink:0; }
+  .tree-chapter-title { font-size:12px; color:var(--text2); font-weight:500; line-height:1.4; }
   .tree-item {
-    display: flex; align-items: flex-start; gap: 8px;
-    padding: 7px 1.25rem;
-    font-size: 12px; color: var(--text3);
-    cursor: pointer; transition: all .15s;
-    line-height: 1.4;
-    border-left: 2px solid transparent;
+    display:flex; align-items:center; gap:8px;
+    padding:5px 1.25rem 5px 2rem;
+    font-size:12px; color:var(--text3);
+    cursor:pointer; transition:all .15s;
+    border-left:2px solid transparent;
   }
-  .tree-item:hover { color: var(--text2); background: var(--bg3); }
-  .tree-item.active { color: var(--text); border-left-color: var(--purple); background: var(--bg3); }
-  .tree-item.chapter-node {
-    font-size: 11px; color: var(--text2); font-weight: 500;
-    letter-spacing: .05em; padding-top: 12px;
-    cursor: default; background: none !important;
-    border-left-color: transparent !important;
-  }
-  .tree-item .page-num { font-size:10px; color:var(--text3); margin-top:1px; flex-shrink:0; }
-  .tree-dot { width:5px; height:5px; border-radius:50%; background:var(--border2); flex-shrink:0; margin-top:5px; }
-  .tree-dot.active { background: var(--purple); }
+  .tree-item:hover { color:var(--text2); background:var(--bg3); }
+  .tree-item.active { color:var(--text); border-left-color:var(--purple); }
+  .tree-dot { width:5px; height:5px; border-radius:50%; background:var(--border2); flex-shrink:0; }
+  .tree-dot.active { background:var(--purple); }
 
   .sidebar-bottom {
     padding: 1rem 1.25rem;
@@ -86,7 +84,7 @@
   .btn-startover:hover { color: #E24B4A; }
 
   /* Main content */
-  #main { margin-left: var(--sidebar); flex:1; max-width: 720px; padding: 2rem 2rem 5rem; }
+  #main { margin-left: var(--sidebar); flex:1; padding: 2rem 3rem 5rem; max-width: calc(100vw - var(--sidebar)); }
 
   /* Loading */
   #loading-screen { text-align:center; padding:4rem 1rem; }
@@ -117,8 +115,8 @@
   /* Story */
   .story-wrap { position:relative; margin-bottom:1rem; }
   .story-card { background:var(--bg); border:0.5px solid var(--border2); border-radius:var(--radius-lg); padding:2rem; min-height:260px; }
-  .story-prose { font-family:var(--serif); font-size:17px; line-height:2; color:var(--text); }
-  .story-prose p { margin-bottom:1.2rem; }
+  .story-prose { font-family:var(--serif); font-size:17px; line-height:2; color:var(--text); text-align:justify; width:100%; }
+  .story-prose p { margin-bottom:1.2rem; text-align:justify; }
   .story-prose p:last-child { margin-bottom:0; }
   .story-hint { color:var(--text3); font-style:italic; font-size:14px; font-family:var(--sans); line-height:1.6; }
 
@@ -148,8 +146,8 @@
   @keyframes dp{0%,80%,100%{opacity:.3;transform:scale(.8)}40%{opacity:1;transform:scale(1)}}
 
   @media (max-width: 600px) {
-    #sidebar { width:180px; min-width:180px; }
-    #main { margin-left:180px; padding:1.5rem 1rem 4rem; }
+    #sidebar { width:160px; min-width:160px; }
+    #main { margin-left:160px; padding:1.5rem 1rem 4rem; max-width:calc(100vw - 160px); }
   }
 </style>
 </head>
@@ -158,7 +156,6 @@
 <!-- Sidebar -->
 <div id="sidebar">
   <div class="sidebar-title">
-    <span>YOUR BOOK</span>
     The Pages
   </div>
   <div class="tree" id="tree">
@@ -274,13 +271,21 @@ function sendToExt(msg, timeout=5000) {
 function updateOnlineStatus(){
   const on=navigator.onLine;
   document.getElementById("status-dot").className="status-dot "+(on?"dot-on":"dot-off");
-  document.getElementById("status-text").textContent=on?"online":"offline";
+  document.getElementById("status-text").textContent=on?"Online":"Offline";
 }
 window.addEventListener("online",updateOnlineStatus);
 window.addEventListener("offline",updateOnlineStatus);
 updateOnlineStatus();
 
 // --- Sidebar tree ---
+// Collapsed state per chapter
+const collapsedChapters = {};
+
+function toggleChapter(chIdx) {
+  collapsedChapters[chIdx] = !collapsedChapters[chIdx];
+  renderTree();
+}
+
 function renderTree() {
   const tree = document.getElementById("tree");
   if (!pages.length) {
@@ -288,24 +293,39 @@ function renderTree() {
     return;
   }
 
-  let html = "";
-  let lastChapter = -1;
-
+  // Group pages by chapter
+  const chapterGroups = {};
   pages.forEach((p, i) => {
-    if (p.chapterIdx !== lastChapter) {
-      lastChapter = p.chapterIdx;
-      const ch = chapters[p.chapterIdx];
-      html += `<div class="tree-item chapter-node">${ch?.title || "Chapter "+(p.chapterIdx+1)}</div>`;
-    }
-    const active = i === currentPage;
-    const pageInChapter = pages.filter((pp,ii)=>pp.chapterIdx===p.chapterIdx&&ii<=i).length;
-    html += `<div class="tree-item ${active?"active":""}" onclick="jumpToPage(${i})">
-      <span class="tree-dot ${active?"active":""}"></span>
-      <span>p. ${i+1}</span>
-    </div>`;
+    const ci = p.chapterIdx;
+    if (!chapterGroups[ci]) chapterGroups[ci] = [];
+    chapterGroups[ci].push({ page: p, idx: i });
   });
 
-  // "Writing..." entry if currently loading
+  let html = "";
+  Object.entries(chapterGroups).forEach(([ci, entries]) => {
+    const chIdx    = parseInt(ci);
+    const ch       = chapters[chIdx];
+    const title    = ch?.title || ("Chapter " + (chIdx+1));
+    const isActive = entries.some(e => e.idx === currentPage);
+    const collapsed = collapsedChapters[chIdx];
+    const arrow    = collapsed ? "▶" : "▼";
+
+    html += `<div class="tree-chapter ${isActive?"tree-chapter-active":""}" onclick="toggleChapter(${chIdx})">
+      <span class="tree-arrow">${arrow}</span>
+      <span class="tree-chapter-title">${title}</span>
+    </div>`;
+
+    if (!collapsed) {
+      entries.forEach(({ page: p, idx: i }) => {
+        const active = i === currentPage;
+        html += `<div class="tree-item ${active?"active":""}" onclick="jumpToPage(${i})">
+          <span class="tree-dot ${active?"active":""}"></span>
+          <span>p. ${i+1}</span>
+        </div>`;
+      });
+    }
+  });
+
   if (isLoading) {
     html += `<div class="tree-item" style="opacity:.4;font-style:italic;">
       <span class="tree-dot"></span><span>writing...</span>
