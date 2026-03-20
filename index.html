@@ -87,7 +87,7 @@
   }
   .topbar-title { font-family:var(--serif); font-size:15px; color:var(--text2); }
 
-  #reading-area { flex:1; overflow-y:auto; padding:3rem 5rem; }
+  #reading-area { flex:1; overflow-y:auto; padding:3rem 5rem 2rem; }
   #reading-area::-webkit-scrollbar { width:6px; }
   #reading-area::-webkit-scrollbar-track { background:var(--bg); }
   #reading-area::-webkit-scrollbar-thumb { background:var(--border2); border-radius:3px; }
@@ -96,7 +96,7 @@
 
   .bottom-nav {
     display:flex; align-items:center; gap:8px; padding:0 5rem;
-    border-top:0.5px solid var(--border);
+    border-top:0.5px solid var(--border2);
     height: var(--bottombar-h); flex-shrink:0;
   }
   @media (max-width: 768px) { .bottom-nav { padding:0 1.5rem; } }
@@ -466,75 +466,47 @@ function resetAll(){
 
 // --- Share ---
 
-// --- Save as HTML file (site-like design) ---
+// --- Save as HTML ---
 function savePDF(){
   if(!pages.length){alert("No pages to save yet.");return;}
 
-  // Detect dark mode
-  // Always dark design for saved file
-  const bg     = "#1a1918";
-  const bg2    = "#242320";
-  const text   = "#e8e6e0";
-  const text2  = "#9a9890";
-  const text3  = "#5a5855";
-  const border = "rgba(255,255,255,0.08)";
-
+  const date=new Date().toLocaleDateString("en-US",{year:"numeric",month:"long",day:"numeric"});
   const chapterMap={};
   pages.forEach(p=>{if(!chapterMap[p.chapterIdx])chapterMap[p.chapterIdx]=[];chapterMap[p.chapterIdx].push(p);});
 
-  let pagesHtml = "";
-  let globalIdx = 0;
+  let body="";
   Object.entries(chapterMap).forEach(([ci,cPages])=>{
     cPages.forEach((p)=>{
-      const isFirst = p.isChapterStart && p.chapterTitle;
-      const paragraphs = p.text.split("\n").filter(s=>s.trim()).map(s=>`<p>${s.trim()}</p>`).join("");
-      pagesHtml += `
-        <div class="page">
-          ${isFirst ? `<div class="ch-label">CHAPTER ${parseInt(ci)+1}</div><div class="ch-title">${p.chapterTitle}</div>` : ""}
-          <div class="prose">${paragraphs}</div>
-          <div class="page-num">— ${globalIdx+1} —</div>
-        </div>`;
-      globalIdx++;
+      const gi=pages.indexOf(p);
+      const paragraphs=p.text.split("\n").filter(s=>s.trim()).map(s=>`<p>${s.trim()}</p>`).join("");
+      body+=`<div class="page">`;
+      if(p.isChapterStart&&p.chapterTitle){
+        body+=`<div class="ch-label">CHAPTER ${parseInt(ci)+1}</div><div class="ch-title">${p.chapterTitle}</div>`;
+      }
+      body+=paragraphs;
+      body+=`<div class="page-num">— ${gi+1} —</div></div>`;
     });
   });
 
-  const date = new Date().toLocaleDateString("en-US",{year:"numeric",month:"long",day:"numeric"});
-
-  const html = `<!DOCTYPE html>
+  const html=`<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>The Pages</title>
 <style>
-  *, *::before, *::after { box-sizing: border-box; margin:0; padding:0; }
-  body { background:${bg}; color:${text}; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif; min-height:100vh; }
-  .cover { max-width:680px; margin:0 auto; padding:5rem 2rem 3rem; border-bottom:0.5px solid ${border}; }
-  .cover-label { font-size:11px; color:${text3}; letter-spacing:.08em; margin-bottom:1rem; }
-  .cover-title { font-family:Georgia,serif; font-size:42px; font-weight:500; color:${text}; margin-bottom:0.75rem; }
-  .cover-date { font-size:13px; color:${text3}; }
-  .sidebar-layout { display:flex; max-width:1000px; margin:0 auto; }
-  .toc { width:220px; min-width:220px; background:${bg2}; padding:2rem 0; min-height:100vh; border-right:0.5px solid ${border}; position:sticky; top:0; height:100vh; overflow-y:auto; }
-  .toc-title { font-family:Georgia,serif; font-size:15px; font-weight:500; color:${text}; padding:0 1.25rem 1rem; border-bottom:0.5px solid ${border}; margin-bottom:0.5rem; }
-  .toc-item { font-size:12px; color:${text3}; padding:5px 1.25rem; display:block; text-decoration:none; border-left:2px solid transparent; }
-  .toc-item:hover { color:${text2}; }
-  .toc-ch { font-size:11px; color:${text2}; font-weight:500; padding:8px 1.25rem 4px; border-top:0.5px solid ${border}; }
-  .content { flex:1; padding:3rem 4rem 5rem; }
-  .page { margin-bottom:4rem; padding-bottom:3rem; border-bottom:0.5px solid ${border}; }
-  .page:last-child { border-bottom:none; }
-  .ch-label { font-size:10px; color:${text3}; letter-spacing:.1em; margin-bottom:8px; }
-  .ch-title { font-family:Georgia,serif; font-size:24px; font-weight:500; color:${text}; line-height:1.3; margin-bottom:2rem; padding-bottom:1.5rem; border-bottom:0.5px solid ${border}; }
-  .prose { font-family:Georgia,serif; font-size:17px; line-height:2; color:${text}; text-align:justify; }
-  .prose p { margin-bottom:1.3rem; }
-  .prose p:last-child { margin-bottom:0; }
-  .page-num { text-align:center; font-size:11px; color:${text3}; margin-top:2rem; }
-  @media (max-width:700px) { .toc{display:none;} .content{padding:2rem 1.5rem 3rem;} }
-  @media print {
-    .toc{display:none;} .sidebar-layout{display:block;}
-    .content{padding:0;} .page{page-break-after:always;}
-    body{background:#fff;color:#1a1a18;}
-    .prose,.ch-title{color:#1a1a18;}
-  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:#0e0e0d;color:#e8e6e0;font-family:Georgia,serif;font-size:15pt;line-height:1.95;max-width:680px;margin:0 auto;padding:3rem 2rem 5rem;}
+  .cover{margin-bottom:4rem;padding-bottom:2rem;border-bottom:0.5px solid rgba(255,255,255,0.1);}
+  .cover-label{font-family:-apple-system,sans-serif;font-size:9pt;color:#5a5855;letter-spacing:.08em;margin-bottom:0.75rem;}
+  .cover-title{font-size:32pt;font-weight:500;color:#e8e6e0;margin-bottom:0.5rem;}
+  .cover-date{font-family:-apple-system,sans-serif;font-size:10pt;color:#5a5855;}
+  .page{margin-bottom:4rem;padding-bottom:3rem;border-bottom:0.5px solid rgba(255,255,255,0.08);}
+  .page:last-child{border-bottom:none;}
+  .ch-label{font-family:-apple-system,sans-serif;font-size:9pt;color:#5a5855;letter-spacing:.1em;margin-bottom:6px;}
+  .ch-title{font-size:20pt;font-weight:500;color:#e8e6e0;margin-bottom:2rem;padding-bottom:1rem;border-bottom:0.5px solid rgba(255,255,255,0.1);}
+  p{margin-bottom:1.3rem;text-align:justify;color:#e8e6e0;}
+  .page-num{text-align:center;font-family:-apple-system,sans-serif;font-size:9pt;color:#5a5855;margin-top:2rem;}
+  @media print{body{background:#0e0e0d;color:#e8e6e0;-webkit-print-color-adjust:exact;print-color-adjust:exact;}}
 </style>
 </head>
 <body>
@@ -543,39 +515,16 @@ function savePDF(){
   <div class="cover-title">The Pages</div>
   <div class="cover-date">${date} · ${pages.length} page${pages.length!==1?"s":""}</div>
 </div>
-<div class="sidebar-layout">
-  <div class="toc">
-    <div class="toc-title">The Pages</div>
-    ${Object.entries(chapterMap).map(([ci,cPages])=>`
-      <div class="toc-ch">${chapters[parseInt(ci)]?.title||"Chapter "+(parseInt(ci)+1)}</div>
-      ${cPages.map((_,pi)=>{
-        const gi=pages.indexOf(cPages[pi]);
-        return `<a class="toc-item" href="#p${gi}">p. ${gi+1}</a>`;
-      }).join("")}
-    `).join("")}
-  </div>
-  <div class="content">
-    ${Object.entries(chapterMap).map(([ci,cPages])=>
-      cPages.map((p)=>{
-        const gi=pages.indexOf(p);
-        const paragraphs=p.text.split("\n").filter(s=>s.trim()).map(s=>`<p>${s.trim()}</p>`).join("");
-        return `<div class="page" id="p${gi}">
-          ${p.isChapterStart&&p.chapterTitle?`<div class="ch-label">CHAPTER ${parseInt(ci)+1}</div><div class="ch-title">${p.chapterTitle}</div>`:""}
-          <div class="prose">${paragraphs}</div>
-          <div class="page-num">— ${gi+1} —</div>
-        </div>`;
-      }).join("")
-    ).join("")}
-  </div>
-</div>
+${body}
 </body></html>`;
 
-  const blob = new Blob([html],{type:"text/html;charset=utf-8"});
-  const url  = URL.createObjectURL(blob);
-  const a    = document.createElement("a");
-  a.href=url; a.download="the-pages.html"; a.click();
+  const blob=new Blob([html],{type:"text/html;charset=utf-8"});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement("a");
+  a.href=url;a.download="the-pages.html";a.click();
   URL.revokeObjectURL(url);
 }
+
 
 function dismissBanner(){document.getElementById("ext-banner").classList.remove("show");sessionStorage.setItem("extBannerDismissed","1");}
 
