@@ -164,7 +164,7 @@
     <div class="tree-empty">Your story will appear here.</div>
   </div>
   <div class="sidebar-bottom">
-    <button class="btn-save"  onclick="savePDF()"   id="btn-save-sidebar"  style="display:none">Save</button>
+    <button class="btn-save"  onclick="savePDF()" id="btn-save-sidebar">Save</button>
     <button class="btn-startover" onclick="confirmReset()">Start over</button>
   </div>
 </div>
@@ -338,9 +338,7 @@ function getDefaultChapters(){
   ];
 }
 
-function showActionButtons(){
-  document.getElementById("btn-save-sidebar").style.display="inline-block";
-}
+function showActionButtons(){} // save always visible
 
 // --- Render ---
 function renderPage(idx){
@@ -458,7 +456,7 @@ function resetAll(){
   document.getElementById("page-counter").style.display="none";
   document.getElementById("ch-marker").classList.remove("show");
   document.getElementById("ch-title").classList.add("hidden");
-  document.getElementById("btn-save-sidebar").style.display="none";
+  // save button stays visible
   document.getElementById("story-prose").innerHTML=`<p class="story-hint">The Pages is learning who you are. Begin when you're ready.</p>`;
   renderTree();
   sendToExt({action:"saveState",state:{pages:[],currentPage:0,currentChapterIdx:0,chapters:[],mood:"absent"}});
@@ -468,7 +466,7 @@ function resetAll(){
 
 // --- Save as HTML ---
 function savePDF(){
-  if(!pages.length){alert("No pages to save yet.");return;}
+  if(!pages.length) return; // nothing to save yet
 
   const date=new Date().toLocaleDateString("en-US",{year:"numeric",month:"long",day:"numeric"});
   const chapterMap={};
@@ -484,7 +482,7 @@ function savePDF(){
         body+=`<div class="ch-label">CHAPTER ${parseInt(ci)+1}</div><div class="ch-title">${p.chapterTitle}</div>`;
       }
       body+=paragraphs;
-      body+=`<div class="page-num">— ${gi+1} —</div></div>`;
+      body+=`<div class="page-num">${gi+1}</div></div>`;
     });
   });
 
@@ -495,17 +493,17 @@ function savePDF(){
 <title>The Pages</title>
 <style>
   *{box-sizing:border-box;margin:0;padding:0}
-  body{background:#0e0e0d;color:#e8e6e0;font-family:Georgia,serif;font-size:15pt;line-height:1.95;max-width:680px;margin:0 auto;padding:3rem 2rem 5rem;}
-  .cover{margin-bottom:4rem;padding-bottom:2rem;border-bottom:0.5px solid rgba(255,255,255,0.1);}
-  .cover-label{font-family:-apple-system,sans-serif;font-size:9pt;color:#5a5855;letter-spacing:.08em;margin-bottom:0.75rem;}
-  .cover-title{font-size:32pt;font-weight:500;color:#e8e6e0;margin-bottom:0.5rem;}
-  .cover-date{font-family:-apple-system,sans-serif;font-size:10pt;color:#5a5855;}
-  .page{margin-bottom:4rem;padding-bottom:3rem;border-bottom:0.5px solid rgba(255,255,255,0.08);}
+  body{background:#0e0e0d;color:#e8e6e0;font-family:Georgia,serif;font-size:14pt;line-height:1.9;max-width:680px;margin:0 auto;padding:2rem 2rem 4rem;}
+  .cover{margin-bottom:2.5rem;padding-bottom:1.5rem;border-bottom:0.5px solid rgba(255,255,255,0.1);}
+  .cover-label{font-family:-apple-system,sans-serif;font-size:8pt;color:#5a5855;letter-spacing:.08em;margin-bottom:0.5rem;}
+  .cover-title{font-size:26pt;font-weight:500;color:#e8e6e0;margin-bottom:0.25rem;}
+  .cover-date{font-family:-apple-system,sans-serif;font-size:9pt;color:#5a5855;}
+  .page{margin-bottom:3rem;padding-bottom:2.5rem;border-bottom:0.5px solid rgba(255,255,255,0.07);}
   .page:last-child{border-bottom:none;}
-  .ch-label{font-family:-apple-system,sans-serif;font-size:9pt;color:#5a5855;letter-spacing:.1em;margin-bottom:6px;}
-  .ch-title{font-size:20pt;font-weight:500;color:#e8e6e0;margin-bottom:2rem;padding-bottom:1rem;border-bottom:0.5px solid rgba(255,255,255,0.1);}
-  p{margin-bottom:1.3rem;text-align:justify;color:#e8e6e0;}
-  .page-num{text-align:center;font-family:-apple-system,sans-serif;font-size:9pt;color:#5a5855;margin-top:2rem;}
+  .ch-label{font-family:-apple-system,sans-serif;font-size:8pt;color:#5a5855;letter-spacing:.1em;margin-bottom:5px;}
+  .ch-title{font-size:18pt;font-weight:500;color:#e8e6e0;margin-bottom:1.5rem;padding-bottom:0.75rem;border-bottom:0.5px solid rgba(255,255,255,0.1);}
+  p{margin-bottom:1.2rem;text-align:justify;color:#e8e6e0;}
+  .page-num{text-align:center;font-family:-apple-system,sans-serif;font-size:8pt;color:#3a3835;margin-top:1.5rem;letter-spacing:.05em;}
   @media print{body{background:#0e0e0d;color:#e8e6e0;-webkit-print-color-adjust:exact;print-color-adjust:exact;}}
 </style>
 </head>
