@@ -460,7 +460,8 @@ function resetAll(){
   // save button stays visible
   document.getElementById("story-prose").innerHTML=`<p class="story-hint">The Pages is learning who you are. Begin when you're ready.</p>`;
   renderTree();
-  sendToExt({action:"saveState",state:{pages:[],currentPage:0,currentChapterIdx:0,chapters:[],mood:"absent"}});
+  // Fully clear book state in IndexedDB so new chapters and text are generated fresh
+  sendToExt({action:"fullReset"});
 }
 
 // --- Share ---
