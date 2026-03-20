@@ -303,11 +303,17 @@ async function init(){
   const stateRes=await sendToExt({action:"loadState"});
   const saved=stateRes?.state;
 
-  if(saved?.chapters?.length){chapters=saved.chapters;}
-  else{
+  if(saved?.chapters?.length){
+    chapters=saved.chapters;
+  } else {
     setLoading("Building your personal chapters...");
     const chapRes=await sendToExt({action:"initChapters"},15000);
-    chapters=chapRes?.chapters||getDefaultChapters();
+    if(chapRes?.chapters){
+      chapters=chapRes.chapters;
+    } else {
+      // No profile — show sync prompt instead of defaults
+      chapters=null;
+    }
   }
   if(saved?.pages?.length){
     pages=saved.pages;currentPage=saved.currentPage||0;
@@ -324,6 +330,14 @@ async function init(){
     document.getElementById("btn-start").style.display="none";
     document.getElementById("btn-continue").style.display="inline-block";
     updateNavButtons();renderTree();showActionButtons();
+  } else if(!chapters){
+    // No profile synced yet
+    document.getElementById("story-prose").innerHTML=
+      `<p class="story-hint">Your book cannot begin without knowing who you are.</p>
+       <p class="story-hint" style="margin-top:1rem">Open the extension, tap <strong style="color:var(--text)">Sync now</strong>, then refresh this page.</p>`;
+    document.getElementById("btn-start").style.display="none";
+    document.getElementById("ext-banner").classList.add("show");
+    renderTree();
   } else {
     document.getElementById("btn-start").style.display="inline-block";
     renderTree();
@@ -332,13 +346,7 @@ async function init(){
 
 function setLoading(t){document.getElementById("loading-text").textContent=t;}
 function getDefaultChapters(){
-  return [
-    {title:"The Self You Cannot Step Away From",theme:"presence and the inescapable now"},
-    {title:"The Weight of Half-Attention",theme:"distraction, depth, what gets lost"},
-    {title:"Returning",theme:"going back, re-reading, dwelling"},
-    {title:"Stillness as Statement",theme:"what patience reveals about desire"},
-    {title:"Who You Became While Reading",theme:"transformation through attention"},
-  ];
+  return []; // No defaults — all chapters must come from user profile
 }
 
 function showActionButtons(){} // save always visible
@@ -389,6 +397,11 @@ async function nextPage(){
   await generateNextPage();
 }
 async function generateNextPage(){
+  if(!chapters||chapters.length===0){
+    document.getElementById("story-prose").innerHTML=
+      `<p class="story-hint">Please sync your browsing profile first. Open the extension and tap Sync now.</p>`;
+    return;
+  }
   isLoading=true;updateNavButtons();renderTree();
   document.getElementById("ch-marker").classList.remove("show");
   document.getElementById("ch-title").classList.add("hidden");
