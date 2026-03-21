@@ -238,6 +238,7 @@ const PAUSE_PROMPTS = [
 ];
 
 let pages=[], currentPage=0, chapters=[], currentChapterIdx=0, chapterSummaries=[];
+let lastVisitedPage=null, scrollDepth=0, pageVisitCounts={};
 let isLoading=false, isStarted=false;
 let timeOnPage=0, pauseCount=0, scrollBackCount=0;
 let currentMood="absent", prevMood="";
@@ -291,8 +292,14 @@ function renderTree(){
 }
 function jumpToPage(idx){
   if(idx<0||idx>=pages.length)return;
-  currentPage=idx;currentChapterIdx=pages[idx].chapterIdx;
-  renderPage(idx);saveState();
+  // Track revisit — if going back to a previously fully-read page
+  if(idx < currentPage && pages[idx]){
+    lastVisitedPage = idx;
+    pageVisitCounts[idx] = (pageVisitCounts[idx]||0) + 1;
+  }
+  scrollDepth = 0; // reset scroll depth for new page
+  currentPage=idx; currentChapterIdx=pages[idx].chapterIdx;
+  renderPage(idx); saveState();
 }
 
 // --- Init ---
@@ -379,17 +386,21 @@ function updateNavButtons(){
 // --- Nav ---
 function prevPage(){
   if(currentPage<=0||isLoading)return;
-  currentPage--;currentChapterIdx=pages[currentPage].chapterIdx;
-  renderPage(currentPage);saveState();
+  // Record revisit signal
+  lastVisitedPage = currentPage - 1;
+  pageVisitCounts[currentPage-1] = (pageVisitCounts[currentPage-1]||0) + 1;
+  scrollDepth = 0;
+  currentPage--; currentChapterIdx=pages[currentPage].chapterIdx;
+  renderPage(currentPage); saveState();
 }
 async function nextPage(){
   if(isLoading)return;
-  // Spam protection: minimum 3s between new page generations
   const now = Date.now();
   if(currentPage >= pages.length-1 && now - lastGenerateTime < 3000) return;
   if(currentPage<pages.length-1){
-    currentPage++;currentChapterIdx=pages[currentPage].chapterIdx;
-    renderPage(currentPage);saveState();return;
+    scrollDepth = 0;
+    currentPage++; currentChapterIdx=pages[currentPage].chapterIdx;
+    renderPage(currentPage); saveState(); return;
   }
   await generateNextPage();
 }
@@ -449,7 +460,12 @@ async function generateNextPage(){
     history, chapterSummaries,
     isChapterStart: chapterChanging || isFirst,
     pagesInChapter: chapterChanging ? 0 : pagesInChapter,
+    revisitedPage: lastVisitedPage,
+    scrollDepth: scrollDepth,
   };
+  // Reset tracking for new page
+  scrollDepth = 0;
+  lastVisitedPage = null;
 
   let result = await sendToExt({action:"generate", state}, 20000);
 
