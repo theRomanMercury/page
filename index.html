@@ -193,7 +193,7 @@
           <div class="ext-title">Personalize your book</div>
           <div class="ext-desc">Install the extension so The Pages is written specifically for you. Your data never leaves your device.</div>
           <ol class="ext-steps">
-            <li><span class="n">1</span><a href="https://chrome.google.com/webstore" target="_blank" style="color:var(--purple)">Chrome Web Store</a> → Adaptive Book</li>
+            <li><span class="n">1</span><a href="https://chrome.google.com/webstore/detail/ddkpigfpoghheflmojomnoklmknonbpf" target="_blank" rel="noopener noreferrer" style="color:var(--purple)">Install from Chrome Web Store</a></li>
             <li><span class="n">2</span>Click icon → Sync</li>
             <li><span class="n">3</span>Refresh this page</li>
           </ol>
@@ -238,9 +238,10 @@ const PAUSE_PROMPTS = [
 
 let pages=[], currentPage=0, chapters=[], currentChapterIdx=0, chapterSummaries=[];
 let lastVisitedPage=null, scrollDepth=0, pageVisitCounts={};
+let lastGenerateTime=0; // hoisted — used in nextPage() before its original declaration
 let isLoading=false, isStarted=false;
 let timeOnPage=0, pauseCount=0, scrollBackCount=0;
-let currentMood="absent", prevMood="";
+let currentMood="curious", prevMood="";
 let lastScrollY=0, pageTimer=null, inactivityTimer=null, isUserActive=true, autoSaveTimer=null;
 const collapsedChapters={};
 let sidebarOpen=true;
@@ -288,7 +289,9 @@ function renderTree(){
     });
   });
   if(isLoading) html+=`<div class="tree-item" style="opacity:.4;font-style:italic;"><span class="tree-dot"></span><span>writing...</span></div>`;
+  const prevScrollTop = tree.scrollTop; // preserve scroll position
   tree.innerHTML=html;
+  tree.scrollTop = prevScrollTop; // restore after DOM rebuild
 }
 function jumpToPage(idx){
   if(isLoading||idx<0||idx>=pages.length)return;
@@ -306,16 +309,20 @@ function jumpToPage(idx){
 // --- Init ---
 async function init(){
   setLoading("Preparing your book...");
-  const ping=await sendToExt({action:"ping"});
-  const hasExt=!!ping?.alive;
-  const stateRes=await sendToExt({action:"loadState"});
-  const saved=stateRes?.state;
+
+  // Run ping and loadState in parallel — avoids up to 10s sequential wait on cold start
+  const [ping, stateRes] = await Promise.all([
+    sendToExt({action:"ping"}),
+    sendToExt({action:"loadState"}, 10000), // 10s: service worker may need time to start + open IDB
+  ]);
+  const hasExt = !!ping?.alive;
+  const saved  = stateRes?.state;
 
   if(saved?.chapters?.length){
     chapters=saved.chapters;
   } else {
     setLoading("Building your personal chapters...");
-    const chapRes=await sendToExt({action:"initChapters"},15000);
+    const chapRes=await sendToExt({action:"initChapters"},60000); // 60s: callWithFallback can take up to 45s across all APIs
     if(chapRes?.chapters){
       chapters=chapRes.chapters;
     } else {
@@ -324,13 +331,15 @@ async function init(){
     }
   }
   if(saved?.pages?.length){
-    pages=saved.pages;currentPage=saved.currentPage||0;
+    pages=saved.pages;
+    // Clamp currentPage to valid range — guards against corrupted saved state
+    currentPage=Math.min(saved.currentPage||0, saved.pages.length-1);
     currentChapterIdx=saved.currentChapterIdx||0;currentMood=saved.mood||"curious";
     if(saved.chapterSummaries) chapterSummaries=saved.chapterSummaries;
     if(saved.pageVisitCounts)  pageVisitCounts=saved.pageVisitCounts;
   }
   // Only show install banner if user has no pages yet (new user)
-  if(!hasExt && !pages.length && !(()=>{try{return localStorage.getItem("extBannerDismissed");}catch{return null;}})())
+  if(!hasExt && !pages.length && !(()=>{try{return sessionStorage.getItem("extBannerDismissed");}catch{return null;}})())
     document.getElementById("ext-banner").classList.add("show");
 
   // If extension missing but pages exist, warn that Next will fail
@@ -343,6 +352,7 @@ async function init(){
     if(main && nav) main.insertBefore(warn, nav);
   }
 
+  document.getElementById("loading-text").textContent=""; // clear stale loading message
   document.getElementById("loading-screen").style.display="none";
   document.getElementById("book-content").style.display="block";
 
@@ -353,11 +363,19 @@ async function init(){
     updateNavButtons();renderTree();showActionButtons();
   } else if(!chapters){
     // No profile synced yet
-    document.getElementById("story-prose").innerHTML=
-      `<p class="story-hint">Your book cannot begin without knowing who you are.</p>
-       <p class="story-hint" style="margin-top:1rem">Open the extension, tap <strong style="color:var(--text)">Sync now</strong>, then refresh this page.</p>`;
+    if(!hasExt){
+      // Extension not installed
+      document.getElementById("story-prose").innerHTML=
+        `<p class="story-hint">Your book cannot begin without knowing who you are.</p>
+         <p class="story-hint" style="margin-top:1rem">Install the extension, tap <strong style="color:var(--text)">Sync</strong>, then refresh this page.</p>`;
+      document.getElementById("ext-banner").classList.add("show");
+    } else {
+      // Extension installed but not yet synced
+      document.getElementById("story-prose").innerHTML=
+        `<p class="story-hint">Your book cannot begin without knowing who you are.</p>
+         <p class="story-hint" style="margin-top:1rem">Open the extension and tap <strong style="color:var(--text)">Sync now</strong>, then refresh this page.</p>`;
+    }
     document.getElementById("btn-start").style.display="none";
-    document.getElementById("ext-banner").classList.add("show");
     renderTree();
   } else {
     document.getElementById("btn-start").style.display="inline-block";
@@ -368,6 +386,21 @@ async function init(){
 function setLoading(t){document.getElementById("loading-text").textContent=t;}
 
 function showActionButtons(){} // save always visible
+
+// --- Shared paragraph split helper ---
+function splitParagraphs(rawText) {
+  if (!rawText || !rawText.trim()) return ["..."]; // guard: blank saved page → show ellipsis
+  let paras = rawText.split(/\n\n+/).map(s => s.trim()).filter(Boolean);
+  if (paras.length <= 1) paras = rawText.split(/\n/).map(s => s.trim()).filter(Boolean);
+  if (paras.length <= 1 && rawText.length > 300) {
+    paras = rawText.match(/[^.!?]*[.!?]+(?:\s|$)/g)?.reduce((acc, s) => {
+      if (!acc.length || acc[acc.length - 1].length > 200) acc.push(s.trim());
+      else acc[acc.length - 1] += " " + s.trim();
+      return acc;
+    }, []).filter(Boolean) || [rawText];
+  }
+  return paras.length > 0 ? paras : [rawText || "..."];
+}
 
 // --- Render ---
 function renderPage(idx){
@@ -386,17 +419,7 @@ function renderPage(idx){
     titleEl.classList.add("hidden");
   }
   const rawText = p.text||"";
-  // Robust paragraph split: prefer double-newline, fall back to single, then sentence split
-  let paras = rawText.split(/\n\n+/).map(s=>s.trim()).filter(Boolean);
-  if (paras.length <= 1) paras = rawText.split(/\n/).map(s=>s.trim()).filter(Boolean);
-  if (paras.length <= 1 && rawText.length > 300) {
-    // Single block — split on sentence boundary every ~200 chars
-    paras = rawText.match(/[^.!?]*[.!?]+(?:\s|$)/g)?.reduce((acc,s)=>{
-      if(!acc.length||acc[acc.length-1].length>200) acc.push(s.trim());
-      else acc[acc.length-1]+=" "+s.trim();
-      return acc;
-    },[]).filter(Boolean) || [rawText];
-  }
+  const paras = splitParagraphs(rawText);
   const html = paras.map(s=>`<p>${s.replace(/</g,"&lt;").replace(/>/g,"&gt;")}</p>`).join("");
   document.getElementById("story-prose").innerHTML=html;
   document.getElementById("pause-prompt").style.display="none"; // hide stale pause prompt
@@ -404,6 +427,9 @@ function renderPage(idx){
   document.getElementById("page-counter").style.display="inline-block";
   updateNavButtons();renderTree();
   document.getElementById("reading-area").scrollTo({top:0,behavior:"smooth"});
+  // If page fits entirely on screen (no scroll needed), mark as fully read
+  const _area = document.getElementById("reading-area");
+  if(_area.scrollHeight <= _area.clientHeight) scrollDepth = 1;
 }
 function updateNavButtons(){
   document.getElementById("btn-prev").style.display=(isStarted&&currentPage>0)?"flex":"none";
@@ -478,23 +504,32 @@ async function generateNextPage(){
   if(chapterChanging){
     // --- Summarize completed chapter ---
     const chapterPages = pages.filter(p => p.chapterIdx === currentChapterIdx).map(p => p.text);
-    const sumRes = await sendToExt({action:"summarizeChapter", passages:chapterPages}, 10000);
+    const sumRes = await sendToExt({action:"summarizeChapter", passages:chapterPages}, 20000);
     if(sumRes?.summary) chapterSummaries[currentChapterIdx] = sumRes.summary;
 
     currentChapterIdx++;
 
     // --- Expand chapters if running out (do this BEFORE clamping so new index is valid) ---
     if(currentChapterIdx >= chapters.length - 1){
-      const moreRes = await sendToExt({action:"generateMoreChapters", existingChapters:chapters}, 15000);
+      const moreRes = await sendToExt({action:"generateMoreChapters", existingChapters:chapters}, 30000);
       if(moreRes?.chapters?.length){
         chapters = [...chapters, ...moreRes.chapters];
-        // Save immediately so refresh doesn't lose new chapters
-        await sendToExt({action:"saveState",state:{pages,currentPage,currentChapterIdx,chapters,chapterSummaries,pageVisitCounts,mood:currentMood}});
       }
     }
 
     // Safety clamp AFTER potential expansion (so new chapters are included in bounds)
-    if(currentChapterIdx >= chapters.length) currentChapterIdx = chapters.length - 1;
+    if(currentChapterIdx >= chapters.length){
+      // Expansion failed — add a minimal fallback chapter so story can continue
+      const fallbackTitles=["What Remains","Further Still","And Then","The Next Passage","Continuing Forward"];
+      const fallbackThemes=["carrying what you have become","the self that emerges from repetition","what remains when distraction falls away","learning to inhabit the present","the cost of half-attention"];
+      const fb=chapters.length%fallbackTitles.length;
+      chapters = [...chapters, {title:fallbackTitles[fb], theme:fallbackThemes[fb]}];
+    }
+
+    // Always save after chapter transition — ensures new chapterIdx persists across refresh
+    // regardless of whether chapter expansion fired or not
+    const saveRes = await sendToExt({action:"saveState",state:{pages,currentPage,currentChapterIdx,chapters,chapterSummaries,pageVisitCounts,mood:currentMood}});
+    if (!saveRes?.success) console.warn("generateNextPage: chapter transition save may have failed — chapterIdx might not persist on refresh");
   }
 
   // --- Generate page ---
@@ -505,6 +540,7 @@ async function generateNextPage(){
     timeOnPage, pauseCount, scrollBackCount,
     history, chapterSummaries,
     isChapterStart: chapterChanging || isFirst,
+    isFirstPage: isFirst, // flag to suppress misleading scroll signals on page 1
     pagesInChapter: chapterChanging ? 0 : pagesInChapter,
     revisitedPage: lastVisitedPage,
     scrollDepth: scrollDepth,
@@ -518,13 +554,13 @@ async function generateNextPage(){
 
   let result = await sendToExt({action:"generate", state}, 50000);
 
-  // Retry once if failed (but not if chapters simply don't exist yet)
-  if(result !== null && (!result?.text || result.text.length < 10)){
+  // Retry once if response is empty/short (null text = all APIs failed = no point retrying)
+  if(result?.text && result.text.length < 10){
     await new Promise(r => setTimeout(r, 1500));
     result = await sendToExt({action:"generate", state}, 50000);
   }
 
-  if(result?.text && result.text.length > 10){
+  if(result?.text && result.text.length >= 10){
     pages.push({
       text: result.text,
       chapterIdx: currentChapterIdx,
@@ -553,7 +589,6 @@ async function generateNextPage(){
 }
 
 // --- Start ---
-let lastGenerateTime = 0;
 function startReading(){
   if(isLoading||isStarted)return;
   isStarted=true;
@@ -563,7 +598,9 @@ function startReading(){
 }
 function continueReading(){
   isStarted=true;
-  scrollDepth=0; lastVisitedPage=null;
+  // Reset all reading-behaviour counters so the resumed session starts clean
+  scrollDepth=0; lastScrollY=0; lastVisitedPage=null;
+  timeOnPage=0; pauseCount=0; scrollBackCount=0;
   document.getElementById("btn-continue").style.display="none";
   beginTracking();
   renderPage(currentPage);
@@ -608,6 +645,15 @@ function onScroll(){
 }
 function onActivity(){if(isStarted)resetInactivity();}
 
+// Keyboard navigation: ← prev, → next (skip if focus is on an interactive element)
+document.addEventListener("keydown", e => {
+  if (!isStarted || isLoading) return;
+  const tag = document.activeElement?.tagName;
+  if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT" || tag === "BUTTON") return;
+  if (e.key === "ArrowLeft"  && currentPage > 0) prevPage();
+  else if (e.key === "ArrowRight")                nextPage();
+});
+
 // --- Save ---
 async function saveState(full=true){
   if(full){
@@ -628,6 +674,10 @@ async function saveState(full=true){
 }
 document.addEventListener("visibilitychange", ()=>{
   if(document.hidden && isStarted){
+    // Pause ALL timers while tab is hidden — prevents inflated timeOnPage and false pauses
+    clearInterval(pageTimer); pageTimer=null;
+    clearInterval(autoSaveTimer); autoSaveTimer=null;
+    clearTimeout(inactivityTimer); inactivityTimer=null;
     // Fire-and-forget summarize (non-blocking, with timeout)
     if(!chapterSummaries[currentChapterIdx]){
       const chPages = pages.filter(p=>p.chapterIdx===currentChapterIdx).map(p=>p.text);
@@ -638,6 +688,11 @@ document.addEventListener("visibilitychange", ()=>{
       }
     }
     saveState();
+  } else if(!document.hidden && isStarted && trackingActive){
+    // Resume ALL timers when tab becomes visible again
+    if(!pageTimer)      pageTimer      = setInterval(()=>{timeOnPage++;updateMood();},1000);
+    if(!autoSaveTimer)  autoSaveTimer  = setInterval(()=>saveState(false),30000);
+    resetInactivity();
   }
 });
 window.addEventListener("beforeunload",()=>{if(isStarted)saveState(false);}); // light save on unload
@@ -645,10 +700,14 @@ window.addEventListener("beforeunload",()=>{if(isStarted)saveState(false);}); //
 // --- Reset ---
 function confirmReset(){if(!confirm("Start over? This will erase your entire book and all chapters."))return;resetAll();}
 function resetAll(){
-  isStarted=false;trackingActive=false;currentPage=0;currentChapterIdx=0;pages=[];chapters=[];chapterSummaries=[];
+  isStarted=false;isLoading=false;trackingActive=false;
+  if(!sidebarOpen){ sidebarOpen=true; document.getElementById("sidebar").classList.remove("collapsed"); }currentPage=0;currentChapterIdx=0;pages=[];chapters=[];chapterSummaries=[];
+  Object.keys(collapsedChapters).forEach(k=>delete collapsedChapters[k]); // clear sidebar collapse state
   pauseCount=0;scrollBackCount=0;timeOnPage=0;scrollDepth=0;lastScrollY=0;lastVisitedPage=null;pageVisitCounts={};
-  currentMood="absent";prevMood="";
-  clearInterval(pageTimer);clearInterval(autoSaveTimer);clearTimeout(inactivityTimer);
+  currentMood="curious";prevMood="";lastGenerateTime=0;
+  clearInterval(pageTimer);pageTimer=null;
+  clearInterval(autoSaveTimer);autoSaveTimer=null;
+  clearTimeout(inactivityTimer);inactivityTimer=null;
   document.getElementById("reading-area").removeEventListener("scroll",onScroll);
   ["mousemove","keydown","click","touchstart"].forEach(ev=>window.removeEventListener(ev,onActivity));
   document.getElementById("btn-start").style.display="inline-block";
@@ -659,13 +718,33 @@ function resetAll(){
   document.getElementById("page-counter").style.display="none";
   document.getElementById("ch-marker").classList.remove("show");
   document.getElementById("ch-title").classList.add("hidden");
+  document.getElementById("ext-banner").classList.remove("show"); // hide install banner on reset
   // save button stays visible
   document.getElementById("story-prose").innerHTML=`<p class="story-hint">Every page you have ever opened has left a trace. This book follows that trace — and turns it into something only you could read.
 
 What you read, where you wander, what you search for in quiet moments — none of it goes anywhere. It stays exactly where it began: on your device, belonging only to you.</p>`;
   renderTree();
-  // Fully clear book state in IndexedDB so new chapters and text are generated fresh
-  sendToExt({action:"fullReset"});
+  // Fully clear book state in IndexedDB, then reload chapters so user can begin without refreshing
+  const btnStart = document.getElementById("btn-start");
+  btnStart.disabled=true; btnStart.textContent="Preparing..."; // prevent click during reload
+  sendToExt({action:"fullReset"}).then(res=>{
+    if(res?.success){
+      sendToExt({action:"initChapters"},60000).then(chapRes=>{
+        if(chapRes?.chapters){
+          chapters=chapRes.chapters; renderTree();
+          btnStart.disabled=false; btnStart.textContent="Begin reading →";
+        } else {
+          // No profile — user needs to sync before they can begin
+          btnStart.disabled=false; btnStart.textContent="Begin reading →";
+          document.getElementById("story-prose").innerHTML=
+            `<p class="story-hint">Open the extension and tap <strong style="color:var(--text)">Sync now</strong>, then click Begin reading.</p>`;
+        }
+      });
+    } else {
+      // fullReset failed (extension down) — re-enable, user must refresh
+      btnStart.disabled=false; btnStart.textContent="Begin reading →";
+    }
+  });
 }
 
 // --- Share ---
@@ -678,13 +757,15 @@ function savePDF(){
   const chapterMap={};
   pages.forEach(p=>{if(!chapterMap[p.chapterIdx])chapterMap[p.chapterIdx]=[];chapterMap[p.chapterIdx].push(p);});
 
+  // Build a global-index map once O(n) instead of indexOf per page O(n²)
+  const pageIndexMap = new Map(pages.map((p, i) => [p, i]));
+
   let body="";
   Object.entries(chapterMap).forEach(([ci,cPages])=>{
     cPages.forEach((p)=>{
-      const gi=pages.indexOf(p);
+      const gi = pageIndexMap.get(p) ?? 0; // page number (global index)
       const rawP = p.text||"";
-      let paras2 = rawP.split(/\n\n+/).map(s=>s.trim()).filter(Boolean);
-      if (paras2.length <= 1) paras2 = rawP.split(/\n/).map(s=>s.trim()).filter(Boolean);
+      const paras2 = splitParagraphs(rawP);
       const paragraphs = paras2.map(s=>`<p>${s.replace(/</g,"&lt;").replace(/>/g,"&gt;")}</p>`).join("");
       body+=`<div class="page">`;
       if(p.isChapterStart&&p.chapterTitle){
@@ -729,12 +810,21 @@ ${body}
   const blob=new Blob([html],{type:"text/html;charset=utf-8"});
   const url=URL.createObjectURL(blob);
   const a=document.createElement("a");
-  a.href=url;a.download="the-pages.html";a.click();
-  URL.revokeObjectURL(url);
+  const safeDate=date.replace(/[^a-z0-9]/gi,"-").replace(/-+/g,"-").toLowerCase();
+  a.href=url;
+  a.download="the-pages-"+safeDate+".html";
+  a.style.display="none";
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(()=>URL.revokeObjectURL(url), 100); // defer revoke — some browsers need time to start download
 }
 
 
-function dismissBanner(){document.getElementById("ext-banner").classList.remove("show");try{localStorage.setItem("extBannerDismissed","1");}catch{}}
+function dismissBanner(){
+  document.getElementById("ext-banner").classList.remove("show");
+  try { sessionStorage.setItem("extBannerDismissed","1"); } catch { /* private browsing — ignore */ }
+}
 
 init();
 </script>
