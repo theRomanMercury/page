@@ -237,7 +237,7 @@ const PAUSE_PROMPTS = [
   "You keep returning. That's not restlessness — it's thinking.",
 ];
 
-let pages=[], currentPage=0, chapters=[], currentChapterIdx=0;
+let pages=[], currentPage=0, chapters=[], currentChapterIdx=0, chapterSummaries=[];
 let isLoading=false, isStarted=false;
 let timeOnPage=0, pauseCount=0, scrollBackCount=0;
 let currentMood="absent", prevMood="";
@@ -405,43 +405,78 @@ async function generateNextPage(){
   document.getElementById("story-prose").innerHTML=
     `<span class="story-hint" style="display:flex;align-items:center;gap:10px"><span class="dot-pulse"><span></span><span></span><span></span></span>Writing the next page...</span>`;
 
-  const isFirst = pages.length === 0;
-  const history = pages.map(p => p.text);
+  const isFirst        = pages.length === 0;
+  const history        = pages.map(p => p.text);
   const pagesInChapter = pages.filter(p => p.chapterIdx === currentChapterIdx).length;
 
-  // AI-powered chapter completion: ask model if chapter theme is resolved
-  // Min 3 pages before checking, max 12 before forcing change
+  // --- Chapter completion check ---
   let chapterChanging = false;
   if (!isFirst && pagesInChapter >= 12) {
-    chapterChanging = true; // force change at max
-  } else if (pagesInChapter >= 3 && currentChapterIdx < chapters.length - 1) {
+    chapterChanging = true; // hard max
+  } else if (!isFirst && pagesInChapter >= 3) {
     const chapterPages = pages.filter(p => p.chapterIdx === currentChapterIdx).map(p => p.text);
-    chapterChanging = await sendToExt({
-      action: "checkChapterEnd",
+    const res = await sendToExt({
+      action: "shouldEndChapter",
       recentPages: chapterPages.slice(-2),
-      chapter: chapters[currentChapterIdx]
-    }, 8000).then(r => r?.end === true).catch(() => false);
+      currentChapter: chapters[currentChapterIdx],
+    }, 8000);
+    chapterChanging = res?.end === true;
   }
 
-  if(chapterChanging && currentChapterIdx < chapters.length - 1) currentChapterIdx++;
+  if(chapterChanging){
+    // --- Summarize completed chapter ---
+    const chapterPages = pages.filter(p => p.chapterIdx === currentChapterIdx).map(p => p.text);
+    const sumRes = await sendToExt({action:"summarizeChapter", passages:chapterPages}, 10000);
+    if(sumRes?.summary) chapterSummaries[currentChapterIdx] = sumRes.summary;
 
+    currentChapterIdx++;
+
+    // --- Expand chapters if running out (unlimited chapters) ---
+    if(currentChapterIdx >= chapters.length - 1){
+      const moreRes = await sendToExt({action:"generateMoreChapters", existingChapters:chapters}, 15000);
+      if(moreRes?.chapters?.length){
+        chapters = [...chapters, ...moreRes.chapters];
+      }
+    }
+  }
+
+  // --- Generate page ---
   lastGenerateTime = Date.now();
-  const res = await sendToExt({action:"generate",state:{chapterIdx:currentChapterIdx,mood:currentMood,timeOnPage,pauseCount,scrollBackCount,history,isChapterStart:chapterChanging||isFirst,pagesInChapter}},20000);
+  const state = {
+    chapterIdx: currentChapterIdx,
+    mood: currentMood,
+    timeOnPage, pauseCount, scrollBackCount,
+    history, chapterSummaries,
+    isChapterStart: chapterChanging || isFirst,
+    pagesInChapter: chapterChanging ? 0 : pagesInChapter,
+  };
 
-  let result = res;
-  if(!result?.text || result.text.length < 10) {
+  let result = await sendToExt({action:"generate", state}, 20000);
+
+  // Retry once if failed
+  if(!result?.text || result.text.length < 10){
     await new Promise(r => setTimeout(r, 1500));
-    result = await sendToExt({action:"generate",state:{chapterIdx:currentChapterIdx,mood:currentMood,timeOnPage,pauseCount,scrollBackCount,history,isChapterStart:chapterChanging||isFirst,pagesInChapter}},20000);
+    result = await sendToExt({action:"generate", state}, 20000);
   }
 
-  if(result?.text&&result.text.length>10){
-    pages.push({text:result.text,chapterIdx:currentChapterIdx,isChapterStart:chapterChanging||isFirst,chapterTitle:(chapterChanging||isFirst)?(chapters[currentChapterIdx]?.title||""):"",});
-    currentPage=pages.length-1;renderPage(currentPage);saveState();showActionButtons();
+  if(result?.text && result.text.length > 10){
+    pages.push({
+      text: result.text,
+      chapterIdx: currentChapterIdx,
+      isChapterStart: chapterChanging || isFirst,
+      chapterTitle: (chapterChanging||isFirst) ? (chapters[currentChapterIdx]?.title||"") : "",
+    });
+    currentPage = pages.length - 1;
+    renderPage(currentPage);
+    saveState();
+    showActionButtons();
   } else {
-    document.getElementById("story-prose").innerHTML=`<p class="story-hint">Something went wrong. Please check the extension is active and try again.</p>`;
+    document.getElementById("story-prose").innerHTML=
+      `<p class="story-hint">Something went wrong. Please check the extension is active and try again.</p>`;
     renderTree();
   }
-  isLoading=false;updateNavButtons();
+  isLoading=false;
+  updateNavButtons();
 }
 
 // --- Start ---
