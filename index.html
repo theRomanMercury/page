@@ -14,7 +14,7 @@
     --sidebar: 240px;
     --topbar-h: 52px;
     --bottombar-h: 56px;
-    --serif: Georgia, 'Times New Roman', serif;
+    --serif: 'Times New Roman', Times, serif;
     --sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   }
   @media (prefers-color-scheme: dark) {
@@ -74,7 +74,6 @@
   }
   .btn-startover { font-size:12px; color:var(--text3); background:none; border:none; font-family:var(--sans); cursor:pointer; padding:0; text-align:left; }
   .btn-startover:hover { color:#E24B4A; }
-  .btn-share { display:none; }
   .btn-save { font-size:12px; color:var(--text3); background:none; border:none; font-family:var(--sans); cursor:pointer; padding:0; text-align:left; }
   .btn-save:hover { color:var(--text2); }
 
@@ -278,7 +277,8 @@ function renderTree(){
   let html="";
   Object.entries(groups).forEach(([ci,entries])=>{
     const chIdx=parseInt(ci);
-    const title=(chapters[chIdx]?.title)||("Chapter "+(chIdx+1));
+    const rawTitle=(chapters[chIdx]?.title)||("Chapter "+(chIdx+1));
+    const title=rawTitle.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
     const isActiveCh=entries.some(e=>e.i===currentPage);
     const collapsed=collapsedChapters[chIdx];
     html+=`<div class="tree-chapter ${isActiveCh?"active-ch":""}" onclick="toggleChapter(${chIdx})"><span class="tree-arrow">${collapsed?"▶":"▼"}</span><span class="tree-chapter-title">${title}</span></div>`;
@@ -291,15 +291,16 @@ function renderTree(){
   tree.innerHTML=html;
 }
 function jumpToPage(idx){
-  if(idx<0||idx>=pages.length)return;
-  // Track revisit — if going back to a previously fully-read page
+  if(isLoading||idx<0||idx>=pages.length)return;
   if(idx < currentPage && pages[idx]){
     lastVisitedPage = idx;
     pageVisitCounts[idx] = (pageVisitCounts[idx]||0) + 1;
   }
-  scrollDepth = 0; // reset scroll depth for new page
+  scrollDepth = 0; lastScrollY = 0;
+  timeOnPage = 0; pauseCount = 0; scrollBackCount = 0;
+  clearTimeout(inactivityTimer); isUserActive = true; // reset stale inactivity timer
   currentPage=idx; currentChapterIdx=pages[idx].chapterIdx;
-  renderPage(idx); saveState();
+  renderPage(idx); saveState(false);
 }
 
 // --- Init ---
@@ -325,9 +326,22 @@ async function init(){
   if(saved?.pages?.length){
     pages=saved.pages;currentPage=saved.currentPage||0;
     currentChapterIdx=saved.currentChapterIdx||0;currentMood=saved.mood||"curious";
+    if(saved.chapterSummaries) chapterSummaries=saved.chapterSummaries;
+    if(saved.pageVisitCounts)  pageVisitCounts=saved.pageVisitCounts;
   }
-  if(!hasExt&&!sessionStorage.getItem("extBannerDismissed"))
+  // Only show install banner if user has no pages yet (new user)
+  if(!hasExt && !pages.length && !(()=>{try{return localStorage.getItem("extBannerDismissed");}catch{return null;}})())
     document.getElementById("ext-banner").classList.add("show");
+
+  // If extension missing but pages exist, warn that Next will fail
+  if(!hasExt && pages.length>0){
+    const warn=document.createElement("div");
+    warn.style.cssText="font-size:12px;color:var(--text3);font-style:italic;padding:8px 1.5rem 0;font-family:var(--sans);line-height:1.5;";
+    warn.textContent="Extension not detected — you can read your existing pages but cannot generate new ones.";
+    const main=document.getElementById("main");
+    const nav=document.querySelector(".bottom-nav");
+    if(main && nav) main.insertBefore(warn, nav);
+  }
 
   document.getElementById("loading-screen").style.display="none";
   document.getElementById("book-content").style.display="block";
@@ -359,6 +373,7 @@ function showActionButtons(){} // save always visible
 function renderPage(idx){
   if(!pages.length)return;
   const p=pages[idx];
+  if(!p)return; // guard: idx out of bounds (e.g. corrupted saved state)
   const marker=document.getElementById("ch-marker");
   const titleEl=document.getElementById("ch-title");
   if(p.isChapterStart&&p.chapterTitle){
@@ -370,37 +385,53 @@ function renderPage(idx){
     marker.classList.remove("show");
     titleEl.classList.add("hidden");
   }
-  const html=p.text.split("\n").filter(s=>s.trim()).map(s=>`<p>${s.trim()}</p>`).join("");
+  const rawText = p.text||"";
+  // Robust paragraph split: prefer double-newline, fall back to single, then sentence split
+  let paras = rawText.split(/\n\n+/).map(s=>s.trim()).filter(Boolean);
+  if (paras.length <= 1) paras = rawText.split(/\n/).map(s=>s.trim()).filter(Boolean);
+  if (paras.length <= 1 && rawText.length > 300) {
+    // Single block — split on sentence boundary every ~200 chars
+    paras = rawText.match(/[^.!?]*[.!?]+(?:\s|$)/g)?.reduce((acc,s)=>{
+      if(!acc.length||acc[acc.length-1].length>200) acc.push(s.trim());
+      else acc[acc.length-1]+=" "+s.trim();
+      return acc;
+    },[]).filter(Boolean) || [rawText];
+  }
+  const html = paras.map(s=>`<p>${s.replace(/</g,"&lt;").replace(/>/g,"&gt;")}</p>`).join("");
   document.getElementById("story-prose").innerHTML=html;
+  document.getElementById("pause-prompt").style.display="none"; // hide stale pause prompt
   document.getElementById("page-num").textContent=idx+1;
   document.getElementById("page-counter").style.display="inline-block";
   updateNavButtons();renderTree();
   document.getElementById("reading-area").scrollTo({top:0,behavior:"smooth"});
 }
 function updateNavButtons(){
-  document.getElementById("btn-prev").style.display=currentPage>0?"flex":"none";
-  document.getElementById("btn-next").style.display="flex";
+  document.getElementById("btn-prev").style.display=(isStarted&&currentPage>0)?"flex":"none";
+  document.getElementById("btn-next").style.display=isStarted?"flex":"none";
   document.getElementById("btn-next").disabled=isLoading;
 }
 
 // --- Nav ---
 function prevPage(){
   if(currentPage<=0||isLoading)return;
-  // Record revisit signal
   lastVisitedPage = currentPage - 1;
   pageVisitCounts[currentPage-1] = (pageVisitCounts[currentPage-1]||0) + 1;
-  scrollDepth = 0;
+  scrollDepth = 0; lastScrollY = 0;
+  timeOnPage = 0; pauseCount = 0; scrollBackCount = 0;
+  clearTimeout(inactivityTimer); isUserActive = true; // reset stale inactivity timer
   currentPage--; currentChapterIdx=pages[currentPage].chapterIdx;
-  renderPage(currentPage); saveState();
+  renderPage(currentPage); saveState(false);
 }
 async function nextPage(){
   if(isLoading)return;
   const now = Date.now();
   if(currentPage >= pages.length-1 && now - lastGenerateTime < 3000) return;
   if(currentPage<pages.length-1){
-    scrollDepth = 0;
+    scrollDepth = 0; lastScrollY = 0;
+    timeOnPage = 0; pauseCount = 0; scrollBackCount = 0;
+    clearTimeout(inactivityTimer); isUserActive = true; // reset stale inactivity timer
     currentPage++; currentChapterIdx=pages[currentPage].chapterIdx;
-    renderPage(currentPage); saveState(); return;
+    renderPage(currentPage); saveState(false); return;
   }
   await generateNextPage();
 }
@@ -415,9 +446,19 @@ async function generateNextPage(){
   document.getElementById("ch-title").classList.add("hidden");
   document.getElementById("story-prose").innerHTML=
     `<span class="story-hint" style="display:flex;align-items:center;gap:10px"><span class="dot-pulse"><span></span><span></span><span></span></span>Writing the next page...</span>`;
+  const slowTimer9  = setTimeout(()=>{
+    if(isLoading) document.getElementById("story-prose").innerHTML=
+      `<span class="story-hint" style="display:flex;align-items:center;gap:10px"><span class="dot-pulse"><span></span><span></span><span></span></span>Still writing — choosing the right words...</span>`;
+  }, 9000);
+  const slowTimer30 = setTimeout(()=>{
+    if(isLoading) document.getElementById("story-prose").innerHTML=
+      `<span class="story-hint" style="display:flex;align-items:center;gap:10px"><span class="dot-pulse"><span></span><span></span><span></span></span>This is taking longer than usual — trying another approach...</span>`;
+  }, 30000);
+  const slowTimer = { clear(){ clearTimeout(slowTimer9); clearTimeout(slowTimer30); } };
+  try {
 
   const isFirst        = pages.length === 0;
-  const history        = pages.map(p => p.text);
+  const history = pages.map((p,i) => i>=pages.length-4 ? p.text : (p.text.trim().split(/[.!?]/)[0]?.substring(0,80)||""));
   const pagesInChapter = pages.filter(p => p.chapterIdx === currentChapterIdx).length;
 
   // --- Chapter completion check ---
@@ -430,7 +471,7 @@ async function generateNextPage(){
       action: "shouldEndChapter",
       recentPages: chapterPages.slice(-2),
       currentChapter: chapters[currentChapterIdx],
-    }, 8000);
+    }, 15000);
     chapterChanging = res?.end === true;
   }
 
@@ -442,13 +483,18 @@ async function generateNextPage(){
 
     currentChapterIdx++;
 
-    // --- Expand chapters if running out (unlimited chapters) ---
+    // --- Expand chapters if running out (do this BEFORE clamping so new index is valid) ---
     if(currentChapterIdx >= chapters.length - 1){
       const moreRes = await sendToExt({action:"generateMoreChapters", existingChapters:chapters}, 15000);
       if(moreRes?.chapters?.length){
         chapters = [...chapters, ...moreRes.chapters];
+        // Save immediately so refresh doesn't lose new chapters
+        await sendToExt({action:"saveState",state:{pages,currentPage,currentChapterIdx,chapters,chapterSummaries,pageVisitCounts,mood:currentMood}});
       }
     }
+
+    // Safety clamp AFTER potential expansion (so new chapters are included in bounds)
+    if(currentChapterIdx >= chapters.length) currentChapterIdx = chapters.length - 1;
   }
 
   // --- Generate page ---
@@ -462,17 +508,20 @@ async function generateNextPage(){
     pagesInChapter: chapterChanging ? 0 : pagesInChapter,
     revisitedPage: lastVisitedPage,
     scrollDepth: scrollDepth,
+    pageVisitCounts: Object.fromEntries(
+      Object.entries(pageVisitCounts).sort(([,a],[,b])=>b-a).slice(0,30)
+    ),
   };
   // Reset tracking for new page
   scrollDepth = 0;
   lastVisitedPage = null;
 
-  let result = await sendToExt({action:"generate", state}, 20000);
+  let result = await sendToExt({action:"generate", state}, 50000);
 
-  // Retry once if failed
-  if(!result?.text || result.text.length < 10){
+  // Retry once if failed (but not if chapters simply don't exist yet)
+  if(result !== null && (!result?.text || result.text.length < 10)){
     await new Promise(r => setTimeout(r, 1500));
-    result = await sendToExt({action:"generate", state}, 20000);
+    result = await sendToExt({action:"generate", state}, 50000);
   }
 
   if(result?.text && result.text.length > 10){
@@ -483,32 +532,52 @@ async function generateNextPage(){
       chapterTitle: (chapterChanging||isFirst) ? (chapters[currentChapterIdx]?.title||"") : "",
     });
     currentPage = pages.length - 1;
+    // Reset reading behavior counters for new page
+    timeOnPage = 0; pauseCount = 0; scrollBackCount = 0; scrollDepth = 0; lastScrollY = 0;
+    clearTimeout(inactivityTimer); isUserActive = true; // prevent stale timer from firing on new page
     renderPage(currentPage);
     saveState();
     showActionButtons();
   } else {
     document.getElementById("story-prose").innerHTML=
-      `<p class="story-hint">Something went wrong. Please check the extension is active and try again.</p>`;
+      `<p class="story-hint">Something went wrong. Please check the extension is active, then
+      <button onclick="generateNextPage()" style="background:none;border:none;color:var(--purple);cursor:pointer;font-family:inherit;font-size:inherit;padding:0;text-decoration:underline;">try again</button>.</p>`;
     renderTree();
   }
-  isLoading=false;
-  updateNavButtons();
+  } finally {
+    slowTimer.clear();
+    isLoading=false;
+    updateNavButtons();
+    renderTree(); // remove 'writing...' dot now that isLoading=false
+  }
 }
 
 // --- Start ---
 let lastGenerateTime = 0;
 function startReading(){
+  if(isLoading||isStarted)return;
   isStarted=true;
   document.getElementById("btn-start").style.display="none";
   beginTracking();
   generateNextPage();
 }
-function continueReading(){isStarted=true;document.getElementById("btn-continue").style.display="none";beginTracking();renderPage(currentPage);}
+function continueReading(){
+  isStarted=true;
+  scrollDepth=0; lastVisitedPage=null;
+  document.getElementById("btn-continue").style.display="none";
+  beginTracking();
+  renderPage(currentPage);
+  updateNavButtons();
+}
+let trackingActive = false;
 function beginTracking(){
+  if(trackingActive) return; // prevent double-adding
+  trackingActive = true;
   pageTimer=setInterval(()=>{timeOnPage++;updateMood();},1000);
   document.getElementById("reading-area").addEventListener("scroll",onScroll,{passive:true});
   ["mousemove","keydown","click","touchstart"].forEach(ev=>window.addEventListener(ev,onActivity,{passive:true}));
-  resetInactivity();autoSaveTimer=setInterval(saveState,30000);
+  resetInactivity();
+  autoSaveTimer=setInterval(()=>saveState(false),30000);
 }
 
 // --- Mood ---
@@ -521,24 +590,64 @@ function calcMood(){
 function updateMood(){const mood=calcMood();if(mood!==prevMood){prevMood=mood;currentMood=mood;}}
 function onPause(){
   pauseCount++;updateMood();
+  if(isLoading)return; // don't show pause prompt while page is generating
   const p=document.getElementById("pause-prompt");
   p.textContent=PAUSE_PROMPTS[Math.min(pauseCount-1,PAUSE_PROMPTS.length-1)];
-  p.style.display="block";setTimeout(()=>{p.style.display="none";},5000);saveState();
+  p.style.display="block";setTimeout(()=>{p.style.display="none";},5000);saveState(false);
 }
 function resetInactivity(){clearTimeout(inactivityTimer);isUserActive=true;inactivityTimer=setTimeout(()=>{isUserActive=false;updateMood();onPause();},8000);}
-function onScroll(){if(!isStarted)return;const y=document.getElementById("reading-area").scrollTop;if(y<lastScrollY-50){scrollBackCount++;updateMood();}lastScrollY=y;resetInactivity();}
+function onScroll(){
+  if(!isStarted)return;
+  const area=document.getElementById("reading-area");
+  const y=area.scrollTop;
+  if(y<lastScrollY-50){scrollBackCount++;updateMood();}
+  lastScrollY=y;
+  const maxScroll=Math.max(1,area.scrollHeight-area.clientHeight);
+  scrollDepth=Math.max(scrollDepth,Math.min(1,y/maxScroll));
+  resetInactivity();
+}
 function onActivity(){if(isStarted)resetInactivity();}
 
 // --- Save ---
-async function saveState(){await sendToExt({action:"saveState",state:{pages,currentPage,currentChapterIdx,chapters,mood:currentMood,timeOnPage,pauseCount,scrollBackCount}});}
-document.addEventListener("visibilitychange",()=>{if(document.hidden&&isStarted)saveState();});
-window.addEventListener("beforeunload",()=>{if(isStarted)saveState();});
+async function saveState(full=true){
+  if(full){
+    // Full save: includes all page text (for restoration after refresh)
+    await sendToExt({action:"saveState",state:{
+      pages, currentPage, currentChapterIdx, chapters,
+      chapterSummaries, pageVisitCounts,
+      mood:currentMood, timeOnPage, pauseCount, scrollBackCount
+    }});
+  } else {
+    // Light save: only position + mood (for interval saves — avoids large payloads)
+    await sendToExt({action:"saveState",state:{
+      currentPage, currentChapterIdx,
+      mood:currentMood, timeOnPage, pauseCount, scrollBackCount,
+      chapterSummaries, pageVisitCounts
+    }});
+  }
+}
+document.addEventListener("visibilitychange", ()=>{
+  if(document.hidden && isStarted){
+    // Fire-and-forget summarize (non-blocking, with timeout)
+    if(!chapterSummaries[currentChapterIdx]){
+      const chPages = pages.filter(p=>p.chapterIdx===currentChapterIdx).map(p=>p.text);
+      if(chPages.length >= 2){
+        sendToExt({action:"summarizeChapter", passages:chPages}, 6000)
+          .then(sumRes=>{ if(sumRes?.summary){ chapterSummaries[currentChapterIdx]=sumRes.summary; saveState(); }})
+          .catch(()=>{});
+      }
+    }
+    saveState();
+  }
+});
+window.addEventListener("beforeunload",()=>{if(isStarted)saveState(false);}); // light save on unload
 
 // --- Reset ---
 function confirmReset(){if(!confirm("Start over? This will erase your entire book and all chapters."))return;resetAll();}
 function resetAll(){
-  isStarted=false;currentPage=0;currentChapterIdx=0;pages=[];chapters=[];
-  pauseCount=0;scrollBackCount=0;timeOnPage=0;currentMood="absent";prevMood="";
+  isStarted=false;trackingActive=false;currentPage=0;currentChapterIdx=0;pages=[];chapters=[];chapterSummaries=[];
+  pauseCount=0;scrollBackCount=0;timeOnPage=0;scrollDepth=0;lastScrollY=0;lastVisitedPage=null;pageVisitCounts={};
+  currentMood="absent";prevMood="";
   clearInterval(pageTimer);clearInterval(autoSaveTimer);clearTimeout(inactivityTimer);
   document.getElementById("reading-area").removeEventListener("scroll",onScroll);
   ["mousemove","keydown","click","touchstart"].forEach(ev=>window.removeEventListener(ev,onActivity));
@@ -573,10 +682,14 @@ function savePDF(){
   Object.entries(chapterMap).forEach(([ci,cPages])=>{
     cPages.forEach((p)=>{
       const gi=pages.indexOf(p);
-      const paragraphs=p.text.split("\n").filter(s=>s.trim()).map(s=>`<p>${s.trim()}</p>`).join("");
+      const rawP = p.text||"";
+      let paras2 = rawP.split(/\n\n+/).map(s=>s.trim()).filter(Boolean);
+      if (paras2.length <= 1) paras2 = rawP.split(/\n/).map(s=>s.trim()).filter(Boolean);
+      const paragraphs = paras2.map(s=>`<p>${s.replace(/</g,"&lt;").replace(/>/g,"&gt;")}</p>`).join("");
       body+=`<div class="page">`;
       if(p.isChapterStart&&p.chapterTitle){
-        body+=`<div class="ch-label">CHAPTER ${parseInt(ci)+1}</div><div class="ch-title">${p.chapterTitle}</div>`;
+        const safeChTitle = (p.chapterTitle||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+        body+=`<div class="ch-label">CHAPTER ${parseInt(ci)+1}</div><div class="ch-title">${safeChTitle}</div>`;
       }
       body+=paragraphs;
       body+=`<div class="page-num">${gi+1}</div></div>`;
@@ -590,7 +703,7 @@ function savePDF(){
 <title>The Pages</title>
 <style>
   *{box-sizing:border-box;margin:0;padding:0}
-  body{background:#0e0e0d;color:#e8e6e0;font-family:Georgia,serif;font-size:14pt;line-height:1.9;max-width:680px;margin:0 auto;padding:2rem 2rem 4rem;}
+  body{background:#0e0e0d;color:#e8e6e0;font-family:'Times New Roman',Times,serif;font-size:14pt;line-height:1.9;max-width:680px;margin:0 auto;padding:2rem 2rem 4rem;}
   .cover{margin-bottom:2.5rem;padding-bottom:1.5rem;border-bottom:0.5px solid rgba(255,255,255,0.1);}
   .cover-label{font-family:-apple-system,sans-serif;font-size:8pt;color:#5a5855;letter-spacing:.08em;margin-bottom:0.5rem;}
   .cover-title{font-size:26pt;font-weight:500;color:#e8e6e0;margin-bottom:0.25rem;}
@@ -598,7 +711,7 @@ function savePDF(){
   .page{margin-bottom:3rem;padding-bottom:2.5rem;border-bottom:0.5px solid rgba(255,255,255,0.07);}
   .page:last-child{border-bottom:none;}
   .ch-label{font-family:-apple-system,sans-serif;font-size:8pt;color:#5a5855;letter-spacing:.1em;margin-bottom:5px;}
-  .ch-title{font-size:18pt;font-weight:500;color:#e8e6e0;margin-bottom:1.5rem;padding-bottom:0.75rem;border-bottom:0.5px solid rgba(255,255,255,0.1);}
+  .ch-title{font-family:'Times New Roman',Times,serif;font-size:18pt;font-weight:500;color:#e8e6e0;margin-bottom:1.5rem;padding-bottom:0.75rem;border-bottom:0.5px solid rgba(255,255,255,0.1);}
   p{margin-bottom:1.2rem;text-align:justify;color:#e8e6e0;}
   .page-num{text-align:center;font-family:-apple-system,sans-serif;font-size:8pt;color:#3a3835;margin-top:1.5rem;letter-spacing:.05em;}
   @media print{body{background:#0e0e0d;color:#e8e6e0;-webkit-print-color-adjust:exact;print-color-adjust:exact;}}
@@ -621,7 +734,7 @@ ${body}
 }
 
 
-function dismissBanner(){document.getElementById("ext-banner").classList.remove("show");sessionStorage.setItem("extBannerDismissed","1");}
+function dismissBanner(){document.getElementById("ext-banner").classList.remove("show");try{localStorage.setItem("extBannerDismissed","1");}catch{}}
 
 init();
 </script>
