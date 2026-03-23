@@ -318,16 +318,17 @@ async function init(){
   const hasExt = !!ping?.alive;
   const saved  = stateRes?.state;
 
-  if(saved?.chapters?.length){
-    chapters=saved.chapters;
+  if(saved?.pages?.length && saved?.chapters?.length){
+    // Book in progress — keep existing chapters for story continuity
+    chapters = saved.chapters;
   } else {
+    // No pages yet (new book or after reset) — always generate fresh chapters from current profile
     setLoading("Building your personal chapters...");
-    const chapRes=await sendToExt({action:"initChapters"},60000); // 60s: callWithFallback can take up to 45s across all APIs
+    const chapRes = await sendToExt({action:"initChapters"}, 60000);
     if(chapRes?.chapters){
-      chapters=chapRes.chapters;
+      chapters = chapRes.chapters;
     } else {
-      // No profile — show sync prompt instead of defaults
-      chapters=null;
+      chapters = null;
     }
   }
   if(saved?.pages?.length){
