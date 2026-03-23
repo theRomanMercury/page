@@ -387,6 +387,24 @@ function setLoading(t){document.getElementById("loading-text").textContent=t;}
 
 function showActionButtons(){} // save always visible
 
+// --- Fix title-case output from AI ---
+// Some models capitalize Every Word Like This. Detect and convert to sentence case.
+function fixTitleCase(text) {
+  if (!text) return text;
+  const words = text.split(" ");
+  const totalWords = words.filter(w => w.length > 1).length;
+  if (totalWords < 4) return text; // too short to judge
+  const capWords = words.filter(w => w.length > 2 && /^[A-Z]/.test(w) && !/^[A-Z]+$/.test(w)).length;
+  // If >45% of multi-char words are capitalized → title case detected
+  if (capWords / Math.max(totalWords, 1) < 0.45) return text; // already normal case
+  // Apply sentence-case: lowercase everything, then re-capitalize sentence starts
+  const lowered = text.replace(/([A-Z])([a-z])/g, (_, a, b) => a.toLowerCase() + b);
+  // Re-capitalize after sentence-ending punctuation and at text start
+  return lowered
+    .replace(/(^|[.!?]\s+|[.!?]"?\s*)([a-z])/g, (_, pre, ch) => pre + ch.toUpperCase())
+    .replace(/I/g, "I"); // restore standalone "I"
+}
+
 // --- Shared paragraph split helper ---
 function splitParagraphs(rawText) {
   if (!rawText || !rawText.trim()) return ["..."]; // guard: blank saved page → show ellipsis
@@ -399,7 +417,9 @@ function splitParagraphs(rawText) {
       return acc;
     }, []).filter(Boolean) || [rawText];
   }
-  return paras.length > 0 ? paras : [rawText || "..."];
+  const result = paras.length > 0 ? paras : [rawText || "..."];
+  // Safety net: ensure every paragraph starts with a capital letter regardless of AI output
+  return result.map(p => p.length > 0 ? p.charAt(0).toUpperCase() + p.slice(1) : p);
 }
 
 // --- Render ---
@@ -418,7 +438,7 @@ function renderPage(idx){
     marker.classList.remove("show");
     titleEl.classList.add("hidden");
   }
-  const rawText = p.text||"";
+  const rawText = fixTitleCase(p.text||"");
   const paras = splitParagraphs(rawText);
   const html = paras.map(s=>`<p>${s.replace(/</g,"&lt;").replace(/>/g,"&gt;")}</p>`).join("");
   document.getElementById("story-prose").innerHTML=html;
@@ -487,17 +507,15 @@ async function generateNextPage(){
   const history = pages.map((p,i) => i>=pages.length-4 ? p.text : (p.text.trim().split(/[.!?]/)[0]?.substring(0,80)||""));
   const pagesInChapter = pages.filter(p => p.chapterIdx === currentChapterIdx).length;
 
-  // --- Chapter completion check ---
+  // --- Chapter completion check (no hard page cap — AI decides naturally) ---
   let chapterChanging = false;
-  if (!isFirst && pagesInChapter >= 12) {
-    chapterChanging = true; // hard max
-  } else if (!isFirst && pagesInChapter >= 3) {
+  if (!isFirst && pagesInChapter >= 6) { // minimum 6 pages before chapter can end
     const chapterPages = pages.filter(p => p.chapterIdx === currentChapterIdx).map(p => p.text);
     const res = await sendToExt({
       action: "shouldEndChapter",
       recentPages: chapterPages.slice(-2),
       currentChapter: chapters[currentChapterIdx],
-    }, 15000);
+    }, 20000);
     chapterChanging = res?.end === true;
   }
 
@@ -510,7 +528,7 @@ async function generateNextPage(){
     currentChapterIdx++;
 
     // --- Expand chapters if running out (do this BEFORE clamping so new index is valid) ---
-    if(currentChapterIdx >= chapters.length - 1){
+    if(currentChapterIdx >= chapters.length - 1){ // expand when approaching last chapter
       const moreRes = await sendToExt({action:"generateMoreChapters", existingChapters:chapters}, 30000);
       if(moreRes?.chapters?.length){
         chapters = [...chapters, ...moreRes.chapters];
@@ -519,11 +537,14 @@ async function generateNextPage(){
 
     // Safety clamp AFTER potential expansion (so new chapters are included in bounds)
     if(currentChapterIdx >= chapters.length){
-      // Expansion failed — add a minimal fallback chapter so story can continue
-      const fallbackTitles=["What Remains","Further Still","And Then","The Next Passage","Continuing Forward"];
-      const fallbackThemes=["carrying what you have become","the self that emerges from repetition","what remains when distraction falls away","learning to inhabit the present","the cost of half-attention"];
-      const fb=chapters.length%fallbackTitles.length;
-      chapters = [...chapters, {title:fallbackTitles[fb], theme:fallbackThemes[fb]}];
+      // Expansion failed — generate a single organic continuation chapter title on the fly
+      const fallbackRes = await sendToExt({action:"generateNextChapter", existingChapters:chapters}, 20000);
+      if(fallbackRes?.chapter){
+        chapters = [...chapters, fallbackRes.chapter];
+      } else {
+        // Last resort: very minimal fallback so story never breaks
+        chapters = [...chapters, {title:"What Comes Next", theme:"the story continues into unknown territory"}];
+      }
     }
 
     // Always save after chapter transition — ensures new chapterIdx persists across refresh
@@ -764,7 +785,7 @@ function savePDF(){
   Object.entries(chapterMap).forEach(([ci,cPages])=>{
     cPages.forEach((p)=>{
       const gi = pageIndexMap.get(p) ?? 0; // page number (global index)
-      const rawP = p.text||"";
+      const rawP = fixTitleCase(p.text||"");
       const paras2 = splitParagraphs(rawP);
       const paragraphs = paras2.map(s=>`<p>${s.replace(/</g,"&lt;").replace(/>/g,"&gt;")}</p>`).join("");
       body+=`<div class="page">`;
