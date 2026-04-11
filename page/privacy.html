@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Privacy — The Pages</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #ffffff; --bg2: #f5f4f0;
+    --text: #1a1a18; --text2: #5a5955; --text3: #9a9894;
+    --border: rgba(0,0,0,0.08); --border2: rgba(0,0,0,0.12);
+    --purple: #534AB7;
+    --serif: Georgia, 'Times New Roman', serif;
+    --sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #1a1918; --bg2: #242320;
+      --text: #e8e6e0; --text2: #9a9890; --text3: #5a5855;
+      --border: rgba(255,255,255,0.07); --border2: rgba(255,255,255,0.12);
+    }
+  }
+  body {
+    background: var(--bg); color: var(--text);
+    font-family: var(--sans); font-size: 15px; line-height: 1.7;
+    max-width: 680px; margin: 0 auto; padding: 4rem 2rem 6rem;
+  }
+  .back {
+    font-size: 13px; color: var(--text3); text-decoration: none;
+    display: inline-flex; align-items: center; gap: 5px; margin-bottom: 3rem;
+  }
+  .back:hover { color: var(--text2); }
+  .label {
+    font-size: 10px; color: var(--text3); letter-spacing: .08em;
+    margin-bottom: 0.5rem;
+  }
+  h1 {
+    font-family: var(--serif); font-size: 28px; font-weight: 500;
+    color: var(--text); margin-bottom: 0.5rem; line-height: 1.2;
+  }
+  .updated {
+    font-size: 12px; color: var(--text3); margin-bottom: 3rem;
+    padding-bottom: 2rem; border-bottom: 0.5px solid var(--border2);
+  }
+  h2 {
+    font-size: 13px; font-weight: 600; color: var(--text);
+    letter-spacing: .04em; margin: 2.5rem 0 0.75rem;
+  }
+  p { color: var(--text2); margin-bottom: 1rem; }
+  ul { color: var(--text2); padding-left: 1.25rem; margin-bottom: 1rem; }
+  li { margin-bottom: 0.4rem; }
+  .callout {
+    background: var(--bg2); border: 0.5px solid var(--border2);
+    border-radius: 8px; padding: 1rem 1.25rem; margin: 1.5rem 0;
+    font-size: 14px; color: var(--text2); line-height: 1.6;
+  }
+  .callout strong { color: var(--text); }
+  a { color: var(--purple); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  .api-table { width: 100%; border-collapse: collapse; margin: 1rem 0; font-size: 13px; }
+  .api-table th {
+    text-align: left; font-weight: 500; color: var(--text);
+    padding: 6px 10px; border-bottom: 0.5px solid var(--border2);
+    font-size: 11px; letter-spacing: .04em;
+  }
+  .api-table td {
+    padding: 8px 10px; color: var(--text2);
+    border-bottom: 0.5px solid var(--border);
+    vertical-align: top;
+  }
+  .api-table tr:last-child td { border-bottom: none; }
+  footer {
+    margin-top: 4rem; padding-top: 2rem;
+    border-top: 0.5px solid var(--border);
+    font-size: 12px; color: var(--text3);
+  }
+</style>
+</head>
+<body>
+
+<a class="back" href="/">← The Pages</a>
+
+<div class="label">PRIVACY POLICY</div>
+<h1>Your data stays with you.</h1>
+<div class="updated">Last updated: March 2026</div>
+
+<div class="callout">
+  <strong>The short version:</strong> The Pages reads your browsing history to write a book that feels personal. Nothing you browse, search for, or read is ever sent to us or stored anywhere outside your own device. The book is yours — and so is the data behind it.
+</div>
+
+<h2>WHAT WE READ</h2>
+<p>The Pages extension accesses your Chrome browsing history from the past 30 days. Specifically, it looks at:</p>
+<ul>
+  <li>Which categories of websites you visit (technology, social media, news, etc.)</li>
+  <li>What times of day you tend to browse</li>
+  <li>Search terms from your browser history</li>
+  <li>Which domains you return to most often</li>
+</ul>
+<p>This information is used to understand your interests and browsing personality — not to track you.</p>
+
+<h2>WHERE YOUR DATA GOES</h2>
+<p>Your browsing data never leaves your device. It is stored locally using your browser's built-in storage (IndexedDB), which only this extension can access. It is never sent to our servers, never sold, never shared with any third party.</p>
+
+<p>The only data that leaves your device is a summarized, anonymized profile — things like "this reader is most active in the evening and tends toward technology and knowledge sites." This profile is sent to an AI writing service to generate your book's text. Raw URLs, search terms, and personal details are never included in what is sent.</p>
+
+<h2>AI WRITING SERVICES</h2>
+<p>The Pages uses a chain of AI APIs to generate your book's prose. These services receive only a writing prompt — no personal identifiers, no raw browsing data. The services used, in order of preference:</p>
+
+<table class="api-table">
+  <tr>
+    <th>Service</th>
+    <th>What they receive</th>
+    <th>Privacy policy</th>
+  </tr>
+  <tr>
+    <td>Groq</td>
+    <td>Writing prompt with anonymized reader profile</td>
+    <td><a href="https://groq.com/privacy-policy/" target="_blank" rel="noopener noreferrer">groq.com</a></td>
+  </tr>
+  <tr>
+    <td>OpenRouter</td>
+    <td>Writing prompt with anonymized reader profile</td>
+    <td><a href="https://openrouter.ai/privacy" target="_blank" rel="noopener noreferrer">openrouter.ai</a></td>
+  </tr>
+  <tr>
+    <td>Google Gemini</td>
+    <td>Writing prompt with anonymized reader profile</td>
+    <td><a href="https://policies.google.com/privacy" target="_blank" rel="noopener noreferrer">google.com</a></td>
+  </tr>
+  <tr>
+    <td>Cohere</td>
+    <td>Writing prompt with anonymized reader profile</td>
+    <td><a href="https://cohere.com/privacy" target="_blank" rel="noopener noreferrer">cohere.com</a></td>
+  </tr>
+  <tr>
+    <td>Hugging Face</td>
+    <td>Writing prompt with anonymized reader profile</td>
+    <td><a href="https://huggingface.co/privacy" target="_blank" rel="noopener noreferrer">huggingface.co</a></td>
+  </tr>
+</table>
+
+<p>If one service reaches its limit, the next one is tried automatically. You will not notice the difference.</p>
+
+<h2>PERMISSIONS EXPLAINED</h2>
+<ul>
+  <li><strong>history</strong> — to read your browsing history and build a profile of your interests. This data never leaves your device.</li>
+  <li><strong>storage</strong> — to save your book and profile locally in your browser, so you can continue reading where you left off.</li>
+  <li><strong>tabs</strong> — to detect when you open The Pages website, so the extension can automatically refresh your profile in the background. No tab content or URLs are stored or transmitted.</li>
+  <li><strong>alarms</strong> — to schedule a periodic background refresh of your profile (every 60 minutes while The Pages is open). No data leaves your device.</li>
+  <li><strong>windows</strong> — to bring an existing Pages tab into focus when you click "Open The Pages" in the extension popup, instead of opening a duplicate tab.</li>
+</ul>
+
+<h2>YOUR BOOK</h2>
+<p>The pages of your book are stored locally in your browser. If you clear your browser data or uninstall the extension, your book is gone — there is no backup on any server. If you want to keep it, use the Save button to download it as a file.</p>
+
+<h2>CHILDREN</h2>
+<p>The Pages is not directed at children under 13 and does not knowingly collect data from them.</p>
+
+<h2>CHANGES</h2>
+<p>If this policy changes meaningfully, we will update the date at the top of this page. Continued use of the extension constitutes acceptance of the updated policy.</p>
+
+<h2>CONTACT</h2>
+<p>Questions? Reach out at <a href="mailto:privacy@theromanmercury.com">privacy@theromanmercury.com</a></p>
+
+<footer>
+  The Pages · <a href="https://theromanmercury.github.io/page" target="_blank" rel="noopener noreferrer">theromanmercury.github.io/page</a> · Your data, your device, your book.
+</footer>
+
+</body>
+</html>
